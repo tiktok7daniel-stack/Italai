@@ -65,3 +65,6 @@ export const IconSwap = ({ size = 24 }: P) =>
   svg(size, <path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />);
 export const IconSearch = ({ size = 24 }: P) =>
   svg(size, <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>);
+export const IconGlobe = ({ size = 24 }: P) =>
+  svg(size, <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" /></>);
+export const IconChevron = ({ size = 24 }: P) => svg(size, <path d="m6 9 6 6 6-6" />);

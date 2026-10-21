@@ -11,15 +11,15 @@ import type { Heard, SayIt, WordInfo } from "../../shared/schemas.ts";
 import { analyzeVerb } from "./italian/analyze.ts";
 import { conjugate } from "./italian/inflect.ts";
 import { pronounce } from "./italian/pronounce.ts";
-import { googleTranslate, type Dir } from "./google.ts";
+import { googleTranslate, packsReady, type Dir } from "./google.ts";
 import { addHistory, sentencesWith } from "./history.ts";
 import { searchPhrases, type Phrase } from "./knowledge/search.ts";
 import { modelById, modelStatus } from "./local/brain.ts";
-import { heardLocal, phraseAsResult, sayLocal, wordLocal, type Progress } from "./local/engine.ts";
+import { heardLocal, phraseAsResult, sayLocal, wordLocal, type Progress, type SayView } from "./local/engine.ts";
 import { getSettings, isNative } from "./settings.ts";
 import { load, save } from "./storage.ts";
 
-export type { Dir, Heard, Progress, Register, SayIt, WordInfo };
+export type { Dir, Heard, Progress, Register, SayIt, SayView, WordInfo };
 
 const ERRORS: Record<string, string> = {
   no_key: "لازم تحط مفتاح Claude API الأول من الإعدادات.",
@@ -117,6 +117,10 @@ async function viaLocal<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * What an Italian would say. With the on-device AI the Italian line comes back first and the
+ * explanation follows through onDetails (the result has detailsPending until then).
+ */
 export async function sayIt(
   text: string,
   register: Register,
@@ -124,8 +128,9 @@ export async function sayIt(
   context: string[],
   onProgress?: (p: Progress) => void,
   origin: "translate" | "conversation" = "translate",
-): Promise<SayIt> {
-  const result = await sayItRaw(text, register, situation, context, onProgress);
+  onDetails?: (full: SayView) => void,
+): Promise<SayView> {
+  const result = await sayItRaw(text, register, situation, context, onProgress, onDetails);
   addHistory({ dir: "ar-it", ar: text, it: result.natural.it, source: origin });
   return result;
 }
@@ -136,7 +141,8 @@ async function sayItRaw(
   situation: string,
   context: string[],
   onProgress?: (p: Progress) => void,
-): Promise<SayIt> {
+  onDetails?: (full: SayView) => void,
+): Promise<SayView> {
   // Exactly a phrasebook sentence: answer instantly, offline, with the curated native wording.
   const best = searchPhrases(text, 1)[0];
   if (best && best.score >= 0.97 && register === "auto") return phraseAsResult(best, text);
@@ -157,7 +163,7 @@ async function sayItRaw(
       culture_tip_ar: native ? best!.phrase.note : "",
     };
   }
-  if (useLocal()) return viaLocal(() => sayLocal(text, register, situation, context, onProgress));
+  if (useLocal()) return viaLocal(() => sayLocal(text, register, situation, context, onProgress, onDetails));
   const input = { text, register, situation, context };
   return viaClaude<SayIt>("/api/say", input, (c, m) => ask(c, m, sayRequest(input)));
 }
@@ -270,7 +276,8 @@ export async function lookupWord(word: string, sentence: string, onProgress?: (p
   let info: WordInfo | null = null;
   let failure: Error | null = null;
   try {
-    if (useGoogle()) return await wordGoogle(word, sentence);
+    // Google's meaning is instant when its packs are on the phone, so the AI engine uses it too.
+    if (useGoogle() || (useLocal() && (await packsReady()))) return await wordGoogle(word, sentence);
     info = useLocal()
       ? await viaLocal(() => wordLocal(word, sentence, onProgress))
       : await viaClaude<WordInfo>("/api/word", input, (c, m) => ask(c, m, wordRequest(input)));

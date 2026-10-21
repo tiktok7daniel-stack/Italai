@@ -6,7 +6,7 @@ import type { Heard, SayIt, WordInfo } from "../../../shared/schemas.ts";
 import type { Register } from "../../../shared/dillo.ts";
 import { pronounce } from "../italian/pronounce.ts";
 import { glossary, searchPhrases, type PhraseHit } from "../knowledge/search.ts";
-import { ensureLoaded, generate, modelById } from "./brain.ts";
+import { cancelGeneration, ensureLoaded, generate, modelById } from "./brain.ts";
 import { getSettings } from "../settings.ts";
 
 const str = { type: "string" };
@@ -18,43 +18,33 @@ const obj = (properties: Record<string, object>) => ({
 });
 const arr = (items: object, maxItems: number) => ({ type: "array", items, maxItems });
 
-const SAY_SCHEMA = obj({
-  understood_ar: str,
-  it: str,
-  why_ar: str,
+// Stage 1 is tiny so the Italian line shows in seconds; stage 2 (the explanation) runs after.
+const SAY_FAST_SCHEMA = obj({ it: str, why_ar: str });
+const SAY_DETAILS_SCHEMA = obj({
   literal_it: str,
   literal_why_ar: str,
   casual_it: str,
   polite_it: str,
-  chunks: arr(obj({ it: str, ar: str }), 8),
+  chunks: arr(obj({ it: str, ar: str }), 6),
   grammar_title_ar: str,
   grammar_ar: str,
 });
 
 const HEARD_SCHEMA = obj({
-  it_clean: str,
   ar: str,
-  idioms: arr(obj({ it: str, ar: str }), 3),
+  idioms: arr(obj({ it: str, ar: str }), 2),
   replies: arr(obj({ it: str, ar: str }), 2),
 });
 
+// Verb facts, tables and pronunciation come from rules; the model only gives the meaning.
 const WORD_SCHEMA = obj({
   lemma: str,
   pos: { type: "string", enum: ["verb", "noun", "adjective", "adverb", "pronoun", "preposition", "conjunction", "article", "interjection", "expression", "other"] },
   meaning_here_ar: str,
-  meanings_ar: arr(str, 4),
-  how_formed_ar: str,
-  gender: { type: "string", enum: ["m", "f", ""] },
-  plural: str,
-  origin_ar: str,
-  examples: arr(obj({ it: str, ar: str }), 2),
-  family: arr(obj({ it: str, ar: str }), 3),
-  memory_tip_ar: str,
+  meanings_ar: arr(str, 3),
 });
 
-const SYSTEM_SAY = `You are a native Italian speaker helping an Egyptian living in Italy.
-He writes in Egyptian Arabic (colloquial). You answer with what an Italian would naturally say in that situation: everyday spoken Italian, not a literal translation. Use the natural fillers and idioms Italians use (dai, guarda, mi sa che, figurati, non mi va, sennò…) when they fit. Keep his meaning and emotion. Keep it short like real speech.
-All explanations must be in simple Egyptian Arabic. Reply only with the JSON object.`;
+const SYSTEM_SAY = `You are a native Italian speaker helping an Egyptian living in Italy. He writes Egyptian Arabic. Give what an Italian would naturally say in that moment: everyday spoken Italian with natural fillers and idioms when they fit, not a literal translation. Keep his meaning and emotion, keep it short. Explanations in simple Egyptian Arabic. Reply only with the JSON object.`;
 
 const SYSTEM_HEARD = `You help an Egyptian living in Italy understand Italian he just heard. Give the meaning in natural Egyptian Arabic (not word for word), explain slang or idioms, and suggest two short natural replies in Italian. Reply only with the JSON object.`;
 
@@ -128,10 +118,9 @@ export function phraseAsResult(hit: PhraseHit, understood: string): SayIt {
   };
 }
 
-interface SayRaw {
-  understood_ar: string;
-  it: string;
-  why_ar: string;
+export type SayView = SayIt & { detailsPending?: boolean };
+
+interface SayDetails {
   literal_it: string;
   literal_why_ar: string;
   casual_it: string;
@@ -141,37 +130,73 @@ interface SayRaw {
   grammar_ar: string;
 }
 
+let sayRun = 0;
+let detailsActive = false;
+
+/**
+ * Two stages so the answer appears fast: first only the natural Italian line (a few seconds),
+ * then the explanation in the background, delivered through onDetails. A newer request cancels
+ * an explanation still being written.
+ */
 export async function sayLocal(
   text: string,
   register: Register,
   situation: string,
   context: string[],
   onProgress?: (p: Progress) => void,
-): Promise<SayIt> {
-  const hits = searchPhrases(text, 4);
+  onDetails?: (full: SayView) => void,
+): Promise<SayView> {
+  const run_id = ++sayRun;
+  if (detailsActive) await cancelGeneration();
+  const hits = searchPhrases(text, 3);
   const prompt =
     `His message (Egyptian Arabic): ${text}\n${REGISTER_HINT[register]}` +
     (situation ? `\nSituation: ${situation}` : "") +
-    (context.length ? `\nConversation so far:\n${context.slice(-4).join("\n")}` : "") +
+    (context.length ? `\nConversation so far:\n${context.slice(-3).join("\n")}` : "") +
     glossLines(text) +
     examples(hits) +
-    `\n\nFill the JSON: understood_ar = his message rewritten clearly in Egyptian Arabic; it = the best natural Italian line; why_ar = one short line why natives say it this way; literal_it = the stiff word-for-word version a learner would make (empty if none); literal_why_ar = why it sounds off; casual_it and polite_it = other natural ways (tu / Lei); chunks = the Italian line split in order into small pieces with Arabic meaning; grammar_title_ar + grammar_ar = one grammar point in it, simply explained.`;
-  const r = await run<SayRaw>(SYSTEM_SAY, prompt, SAY_SCHEMA, 700, onProgress);
-  const alt = (register: "casual" | "polite", label: string, it: string) =>
-    it && it !== r.it ? [{ register, label_ar: label, it, pron_ar: pronounce(it) }] : [];
-  return {
-    understood_ar: r.understood_ar || text,
-    natural: { it: r.it, pron_ar: pronounce(r.it), vibe_ar: r.why_ar },
-    alternatives: [...alt("casual", "مع صحابك", r.casual_it), ...alt("polite", "باحترام", r.polite_it)],
-    literal_trap: { it: r.literal_it && r.literal_it !== r.it ? r.literal_it : "", why_ar: r.literal_why_ar },
-    chunks: (r.chunks ?? []).map((c) => ({ ...c, note_ar: "" })),
-    grammar: r.grammar_ar ? [{ title_ar: r.grammar_title_ar || "القاعدة", explain_ar: r.grammar_ar }] : [],
+    `\n\nJSON: it = the best natural Italian line; why_ar = one short Arabic line on why natives say it this way.`;
+  const fast = await run<{ it: string; why_ar: string }>(SYSTEM_SAY, prompt, SAY_FAST_SCHEMA, 120, onProgress);
+  const base: SayView = {
+    understood_ar: text,
+    natural: { it: fast.it, pron_ar: pronounce(fast.it), vibe_ar: fast.why_ar },
+    alternatives: [],
+    literal_trap: { it: "", why_ar: "" },
+    chunks: [],
+    grammar: [],
     culture_tip_ar: hits[0]?.score > 0.6 ? hits[0].phrase.note : "",
+    detailsPending: Boolean(onDetails),
   };
+  if (onDetails) {
+    const detailsPrompt =
+      `His message (Egyptian Arabic): ${text}\nThe natural Italian line: ${fast.it}\n\n` +
+      `JSON: literal_it = the stiff word-for-word version a learner would make (empty if none); literal_why_ar = why it sounds off; casual_it / polite_it = other natural ways (tu / Lei); chunks = the Italian line split in order into small pieces with Arabic meaning; grammar_title_ar + grammar_ar = one grammar point in it, simply explained in Arabic.`;
+    detailsActive = true;
+    run<SayDetails>(SYSTEM_SAY, detailsPrompt, SAY_DETAILS_SCHEMA, 450)
+      .finally(() => {
+        if (run_id === sayRun) detailsActive = false;
+      })
+      .then((d) => {
+        if (run_id !== sayRun) return; // a newer sentence replaced this one
+        const alt = (reg: "casual" | "polite", label: string, it: string) =>
+          it && it !== fast.it ? [{ register: reg, label_ar: label, it, pron_ar: pronounce(it) }] : [];
+        onDetails({
+          ...base,
+          detailsPending: false,
+          alternatives: [...alt("casual", "مع صحابك", d.casual_it), ...alt("polite", "باحترام", d.polite_it)],
+          literal_trap: { it: d.literal_it && d.literal_it !== fast.it ? d.literal_it : "", why_ar: d.literal_why_ar },
+          chunks: (d.chunks ?? []).map((c) => ({ ...c, note_ar: "" })),
+          grammar: d.grammar_ar ? [{ title_ar: d.grammar_title_ar || "القاعدة", explain_ar: d.grammar_ar }] : [],
+        });
+      })
+      .catch(() => {
+        if (run_id === sayRun) onDetails({ ...base, detailsPending: false });
+      });
+  }
+  return base;
 }
 
 interface HeardRaw {
-  it_clean: string;
   ar: string;
   idioms: { it: string; ar: string }[];
   replies: { it: string; ar: string }[];
@@ -180,10 +205,10 @@ interface HeardRaw {
 export async function heardLocal(text: string, context: string[], onProgress?: (p: Progress) => void): Promise<Heard> {
   const prompt =
     `Italian he heard: ${text}` +
-    (context.length ? `\nConversation so far:\n${context.slice(-4).join("\n")}` : "") +
-    `\n\nFill the JSON: it_clean = the sentence with punctuation fixed; ar = its meaning in Egyptian Arabic; idioms = slang/idioms in it explained in Arabic (empty if none); replies = two short natural Italian replies with Arabic meaning.`;
-  const r = await run<HeardRaw>(SYSTEM_HEARD, prompt, HEARD_SCHEMA, 400, onProgress);
-  return { it_clean: r.it_clean || text, ar: r.ar, idioms: r.idioms ?? [], reply_ideas: r.replies ?? [] };
+    (context.length ? `\nConversation so far:\n${context.slice(-3).join("\n")}` : "") +
+    `\n\nJSON: ar = its meaning in Egyptian Arabic; idioms = slang/idioms in it explained in Arabic (empty if none); replies = two short natural Italian replies with Arabic meaning.`;
+  const r = await run<HeardRaw>(SYSTEM_HEARD, prompt, HEARD_SCHEMA, 220, onProgress);
+  return { it_clean: text, ar: r.ar, idioms: r.idioms ?? [], reply_ideas: r.replies ?? [] };
 }
 
 interface WordRaw {
@@ -191,13 +216,6 @@ interface WordRaw {
   pos: WordInfo["pos"];
   meaning_here_ar: string;
   meanings_ar: string[];
-  how_formed_ar: string;
-  gender: "m" | "f" | "";
-  plural: string;
-  origin_ar: string;
-  examples: { it: string; ar: string }[];
-  family: { it: string; ar: string }[];
-  memory_tip_ar: string;
 }
 
 const POS_AR: Record<string, string> = {
@@ -205,25 +223,25 @@ const POS_AR: Record<string, string> = {
   conjunction: "حرف عطف", article: "أداة تعريف", interjection: "تعبير", expression: "تعبير", other: "كلمة",
 };
 
-/** Model part of a word lookup; the verb tables are added by the caller from the rule engine. */
+/** Model part of a word lookup (just the meaning); verb facts and tables come from the rule engines. */
 export async function wordLocal(word: string, sentence: string, onProgress?: (p: Progress) => void): Promise<WordInfo> {
-  const prompt = `Word: ${word}\nSentence: ${sentence || word}\n\nFill the JSON: lemma = dictionary form (infinitive for verbs); meaning_here_ar = meaning in this sentence; meanings_ar = common meanings; how_formed_ar = how this exact form is built from the lemma; gender/plural for nouns; origin_ar = etymology (Latin root etc.); examples = everyday sentences; family = related words; memory_tip_ar = a fun way to remember it.`;
-  const r = await run<WordRaw>(SYSTEM_WORD, prompt, WORD_SCHEMA, 600, onProgress);
+  const prompt = `Word: ${word}\nSentence: ${sentence || word}\n\nJSON: lemma = dictionary form; meaning_here_ar = its Arabic meaning in this sentence; meanings_ar = other common Arabic meanings.`;
+  const r = await run<WordRaw>(SYSTEM_WORD, prompt, WORD_SCHEMA, 90, onProgress);
   return {
     word,
     lemma: r.lemma || word,
     pos: r.pos ?? "other",
     pos_ar: POS_AR[r.pos] ?? "كلمة",
-    meanings_ar: r.meanings_ar ?? [],
+    meanings_ar: (r.meanings_ar ?? []).filter((m) => m && m !== r.meaning_here_ar),
     meaning_here_ar: r.meaning_here_ar,
     pron_ar: pronounce(word),
     ipa: "",
-    how_formed_ar: r.how_formed_ar,
-    noun_info: { gender: r.gender ?? "", singular: r.pos === "noun" ? r.lemma : "", plural: r.plural ?? "", feminine: "" },
+    how_formed_ar: "",
+    noun_info: { gender: "", singular: "", plural: "", feminine: "" },
     verb: { infinitive: "", auxiliary: "", past_participle: "", gerund: "", group_ar: "", tense_here: "", person_here: "", tenses: [] },
-    origin_ar: r.origin_ar,
-    family: r.family ?? [],
-    examples: r.examples ?? [],
-    memory_tip_ar: r.memory_tip_ar,
+    origin_ar: "",
+    family: [],
+    examples: [],
+    memory_tip_ar: "",
   };
 }

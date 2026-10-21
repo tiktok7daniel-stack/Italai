@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { EnginePicker } from "./components/EnginePicker.tsx";
 import { IconBook, IconChat, IconGear, IconSpark } from "./components/Icons.tsx";
 import { LiveTab } from "./components/LiveTab.tsx";
 import { NotebookTab } from "./components/NotebookTab.tsx";
@@ -9,7 +10,7 @@ import { ShowMode } from "./components/ShowMode.tsx";
 import { WordSheet } from "./components/WordSheet.tsx";
 import { dueItems, useNotebook } from "./lib/notebook.ts";
 import { useLanguagePacks } from "./lib/google.ts";
-import { modelById, useModelStatus } from "./lib/local/brain.ts";
+import { ensureLoaded, modelById, useModelStatus } from "./lib/local/brain.ts";
 import { isNative, needsKey, useSettings } from "./lib/settings.ts";
 import { load, save } from "./lib/storage.ts";
 
@@ -24,6 +25,11 @@ export function App() {
   const local = useModelStatus(modelById(settings.localModel));
   const missingModel = isNative && settings.engine === "local" && local.status !== null && local.status.state !== "ready";
   const packs = useLanguagePacks();
+  const localReady = isNative && settings.engine === "local" && local.status?.state === "ready";
+  // Load the on-device model in the background at startup, so the first sentence doesn't wait for it.
+  useEffect(() => {
+    if (localReady) ensureLoaded(modelById(settings.localModel)).catch(() => {});
+  }, [localReady, settings.localModel]);
   const missingPacks = isNative && settings.engine === "google" && packs.loaded && !(packs.ar && packs.it);
   // First launch of the app: open the settings to set up the model.
   const [settingsOpen, setSettingsOpen] = useState(() => isNative && !load("dillo.onboarded", false));
@@ -55,9 +61,12 @@ export function App() {
             <small>قولها زي الطلاينة</small>
           </div>
         </div>
-        <button className="icon-btn" onClick={() => setSettingsOpen(true)} aria-label="الإعدادات">
-          <IconGear size={20} />
-        </button>
+        <div className="top-actions">
+          <EnginePicker onSetup={() => setSettingsOpen(true)} />
+          <button className="icon-btn" onClick={() => setSettingsOpen(true)} aria-label="الإعدادات">
+            <IconGear size={20} />
+          </button>
+        </div>
       </header>
       {missingKey && (
         <button className="setup-banner glass" onClick={() => setSettingsOpen(true)}>

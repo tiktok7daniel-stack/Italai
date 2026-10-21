@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { sayIt, type Progress, type Register, type SayIt } from "../lib/api.ts";
+import { sayIt, type Progress, type Register, type SayView } from "../lib/api.ts";
 import { phrasesIn, type Phrase } from "../lib/knowledge/search.ts";
 import type { Category } from "../lib/knowledge/phrases.ts";
 import { phraseAsResult } from "../lib/local/engine.ts";
@@ -30,7 +30,7 @@ export function SayTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: s
   const [asked, setAsked] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<SayIt | null>(null);
+  const [result, setResult] = useState<SayView | null>(null);
 
   async function run(text: string) {
     if (!text.trim() || busy) return;
@@ -40,7 +40,12 @@ export function SayTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: s
     setResult(null);
     setProgress(null);
     try {
-      setResult(await sayIt(text, register, situation, [], setProgress));
+      setResult(
+        await sayIt(text, register, situation, [], setProgress, "translate", (full) =>
+          // The explanation arrives later; only apply it if this result is still on screen.
+          setResult((cur) => (cur && cur.natural.it === full.natural.it ? full : cur)),
+        ),
+      );
       setDraft("");
     } catch (e) {
       setError((e as Error).message);

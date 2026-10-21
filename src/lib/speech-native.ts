@@ -9,7 +9,7 @@ import type { Lang } from "./speech.ts";
 
 const POLL_MS = 300;
 const START_GRACE_MS = 1000;
-const FINAL_GRACE_MS = 700;
+const FINAL_GRACE_MS = 450;
 
 interface Owner {
   onPartial(text: string): void;

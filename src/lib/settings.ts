@@ -6,25 +6,28 @@ import { load, save } from "./storage.ts";
 export type Engine = "google" | "local" | "claude";
 
 export interface Settings {
-  engine: Engine; // Google Translate on the phone (default), on-device Gemma, or Claude
+  engine: Engine; // on-device AI (default), Google Translate on the phone, or Claude
   localModel: "e2b" | "e4b";
   apiKey: string; // stays on this device only
   model: string;
   rate: number; // speech speed for the Italian voice
 }
 
-const KEY = "dillo.settings.v2";
-const OLD_KEY = "dillo.settings.v1"; // before Google became the default engine
+const KEY = "dillo.settings.v3";
+// v2 switched everyone to Google without asking; v3 restores the engine people had chosen
+// (the on-device AI by default) and keeps their other settings.
+const v1 = load<Partial<Settings>>("dillo.settings.v1", {});
+const { engine: _forced, ...v2 } = load<Partial<Settings>>("dillo.settings.v2", {});
 export const isNative = Capacitor.isNativePlatform();
 
-const { engine: _oldEngine, ...previous } = load<Partial<Settings>>(OLD_KEY, {});
 let settings: Settings = {
-  engine: isNative ? "google" : "claude",
+  engine: isNative ? "local" : "claude",
   localModel: "e2b",
   apiKey: "",
   model: DEFAULT_MODEL,
   rate: 1,
-  ...previous,
+  ...v1,
+  ...v2,
   ...load<Partial<Settings>>(KEY, {}),
 };
 // Google and the on-device model only exist in the Android app.

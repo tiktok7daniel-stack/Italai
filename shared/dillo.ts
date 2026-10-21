@@ -62,7 +62,8 @@ export function sayRequest(input: SayInput): Request<typeof SayItSchema> {
     `What I want to say (Egyptian Arabic):\n${text}\n\n${register}` +
     (situation ? `\nSituation: ${situation}` : "") +
     context(input.context);
-  return { schema: SayItSchema, system: SAY_IT_SYSTEM, user, effort: "medium" };
+  // Low effort answers in a few seconds; the task is short and the prompt is specific.
+  return { schema: SayItSchema, system: SAY_IT_SYSTEM, user, effort: "low" };
 }
 
 export function heardRequest(input: HeardInput): Request<typeof HeardSchema> {

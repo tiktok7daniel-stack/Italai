@@ -32,6 +32,12 @@ export async function downloadedPacks(): Promise<Language[]> {
   return r.languages;
 }
 
+/** True when both Arabic and Italian can be translated offline. */
+export async function packsReady(): Promise<boolean> {
+  const packs = await downloadedPacks().catch(() => [] as Language[]);
+  return packs.includes(LANG.ar) && packs.includes(LANG.it);
+}
+
 export function downloadPack(lang: "ar" | "it") {
   return Translation.downloadModel({ language: LANG[lang] });
 }

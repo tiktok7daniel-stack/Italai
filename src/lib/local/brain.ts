@@ -109,6 +109,13 @@ export function ensureLoaded(m: LocalModel): Promise<string> {
   return loading;
 }
 
+let running = false;
+
+/** Stops a generation in progress (e.g. an explanation nobody is waiting for anymore). */
+export async function cancelGeneration() {
+  if (running) await Native.cancel().catch(() => {});
+}
+
 // The native side runs one generation at a time; queue requests here.
 let queue: Promise<unknown> = Promise.resolve();
 let seq = 0;
@@ -128,6 +135,7 @@ export function generate(
           opts.onToken!(count);
         })
       : null;
+    running = true;
     try {
       const r = await Native.generate({
         id,
@@ -139,6 +147,7 @@ export function generate(
       });
       return r.text;
     } finally {
+      running = false;
       await handle?.remove();
     }
   };

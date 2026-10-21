@@ -1,4 +1,4 @@
-import type { SayIt } from "../lib/api.ts";
+import type { SayView } from "../lib/api.ts";
 import { addItem, hasItem, useNotebook } from "../lib/notebook.ts";
 import { speak } from "../lib/tts.ts";
 import {
@@ -26,7 +26,7 @@ const REGISTER_ICON: Record<string, React.ReactNode> = {
 
 type WordHandler = (word: string, sentence: string) => void;
 
-export function SayResult({ r, onWord, onShow, compact = false }: { r: SayIt; onWord: WordHandler; onShow: (it: string) => void; compact?: boolean }) {
+export function SayResult({ r, onWord, onShow, compact = false }: { r: SayView; onWord: WordHandler; onShow: (it: string) => void; compact?: boolean }) {
   useNotebook();
   const saved = hasItem(r.natural.it);
 
@@ -67,6 +67,17 @@ export function SayResult({ r, onWord, onShow, compact = false }: { r: SayIt; on
         </div>
         <div className="press-hint">دوس على أي كلمة تسمعها · دوسة طويلة تفهمها وتصرّفها</div>
       </div>
+
+      {!compact && r.detailsPending && (
+        <div className="card glass details-pending">
+          <span className="typing">
+            <i />
+            <i />
+            <i />
+          </span>
+          بيجهز الشرح والطرق التانية…
+        </div>
+      )}
 
       {!compact && (
         <>

@@ -51,11 +51,11 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
             <section className="block">
               <h4>الترجمة بتشتغل بـ</h4>
               <div className="seg glass">
+                <button className={settings.engine === "local" ? "active" : ""} onClick={() => updateSettings({ engine: "local" })}>
+                  ذكاء اصطناعي
+                </button>
                 <button className={settings.engine === "google" ? "active" : ""} onClick={() => updateSettings({ engine: "google" })}>
                   جوجل
-                </button>
-                <button className={settings.engine === "local" ? "active" : ""} onClick={() => updateSettings({ engine: "local" })}>
-                  Gemma
                 </button>
                 <button className={settings.engine === "claude" ? "active" : ""} onClick={() => updateSettings({ engine: "claude" })}>
                   Claude
