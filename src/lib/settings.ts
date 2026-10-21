@@ -3,17 +3,30 @@ import { useSyncExternalStore } from "react";
 import { DEFAULT_MODEL } from "../../shared/dillo.ts";
 import { load, save } from "./storage.ts";
 
+export type Engine = "local" | "claude";
+
 export interface Settings {
+  engine: Engine; // on-device model (default on the phone) or Claude
+  localModel: "e2b" | "e4b";
   apiKey: string; // stays on this device only
   model: string;
   rate: number; // speech speed for the Italian voice
 }
 
 const KEY = "dillo.settings.v1";
-let settings: Settings = { apiKey: "", model: DEFAULT_MODEL, rate: 1, ...load<Partial<Settings>>(KEY, {}) };
-const listeners = new Set<() => void>();
-
 export const isNative = Capacitor.isNativePlatform();
+
+let settings: Settings = {
+  engine: isNative ? "local" : "claude",
+  localModel: "e2b",
+  apiKey: "",
+  model: DEFAULT_MODEL,
+  rate: 1,
+  ...load<Partial<Settings>>(KEY, {}),
+};
+// The on-device model only exists in the Android app.
+if (!isNative) settings.engine = "claude";
+const listeners = new Set<() => void>();
 
 export function getSettings() {
   return settings;
@@ -35,7 +48,7 @@ export function useSettings() {
   );
 }
 
-/** The app needs a key of its own unless it's the web build talking to its server. */
+/** Claude in the app needs a key of its own (the web build can use its server instead). */
 export function needsKey(s: Settings) {
-  return isNative && !s.apiKey;
+  return isNative && s.engine === "claude" && !s.apiKey;
 }

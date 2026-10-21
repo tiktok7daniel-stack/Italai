@@ -1389,6 +1389,123 @@ main {
   accent-color: var(--accent);
 }
 
+.pre-line {
+  white-space: pre-line;
+}
+.model.local {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.model-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: start;
+}
+.model-main:disabled {
+  opacity: 1;
+}
+.model-text {
+  display: flex;
+  flex-direction: column;
+}
+.radio {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+}
+.radio.on {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 45%, transparent 50%);
+}
+.model-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.small-btn {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 0.88rem;
+}
+.ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ok);
+  margin-inline-end: auto;
+}
+.warn {
+  color: #ffcf8a;
+}
+.download {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.download-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.test-out {
+  white-space: pre-line;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--muted);
+}
+.test-reply {
+  margin-top: 6px;
+  color: var(--text);
+  text-align: left;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+  font-size: 0.88rem;
+}
+.check-row input {
+  accent-color: var(--accent);
+  width: 18px;
+  height: 18px;
+}
+.phrase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.phrase {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+}
+.phrase-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+  min-width: 0;
+}
+.phrase-ar {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.phrase-it {
+  font-weight: 600;
+  text-align: left;
+}
+
 /* ---------- Show mode ---------- */
 .show-mode {
   position: fixed;

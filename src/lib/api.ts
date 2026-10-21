@@ -8,10 +8,16 @@ import {
   type Register,
 } from "../../shared/dillo.ts";
 import type { Heard, SayIt, WordInfo } from "../../shared/schemas.ts";
+import { analyzeVerb } from "./italian/analyze.ts";
+import { conjugate } from "./italian/conjugate.ts";
+import { pronounce } from "./italian/pronounce.ts";
+import { searchPhrases } from "./knowledge/search.ts";
+import { modelById, modelStatus } from "./local/brain.ts";
+import { heardLocal, phraseAsResult, sayLocal, wordLocal, type Progress } from "./local/engine.ts";
 import { getSettings, isNative } from "./settings.ts";
 import { load, save } from "./storage.ts";
 
-export type { Heard, Register, SayIt, WordInfo };
+export type { Heard, Progress, Register, SayIt, WordInfo };
 
 const ERRORS: Record<string, string> = {
   no_key: "لازم تحط مفتاح Claude API الأول من الإعدادات.",
@@ -21,6 +27,8 @@ const ERRORS: Record<string, string> = {
   upstream: "في مشكلة مؤقتة في الاتصال، جرب تاني.",
   offline: "مفيش نت، اتأكد من الاتصال وجرب تاني.",
   credit: "Claude رفض الطلب. غالباً الرصيد في حسابك خلص أو محتاج تفعّل الدفع من console.anthropic.com.",
+  no_model: "الموديل لسه مش متحمّل على الموبايل. نزّله من الإعدادات (مرة واحدة بس).",
+  local_failed: "الموديل اللي على الموبايل مقدرش يرد. جرب تاني، ولو فضلت المشكلة جرّب الموديل الأصغر من الإعدادات.",
 };
 
 let client: Anthropic | null = null;
@@ -68,21 +76,47 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return data as T;
 }
 
-/** With a key saved on the device, talk to Claude directly; the web build can fall back to its server. */
-function call<T>(path: string, body: object, run: (c: Anthropic, model: string) => Promise<T>): Promise<T> {
+/** Claude: with a key saved on the device talk to it directly; the web build can use its server. */
+function viaClaude<T>(path: string, body: object, run: (c: Anthropic, model: string) => Promise<T>): Promise<T> {
   if (getSettings().apiKey) return direct(run);
   if (isNative) return Promise.reject(new Error(ERRORS.no_key));
   return post<T>(path, body);
 }
 
-export function sayIt(text: string, register: Register, situation: string, context: string[]) {
-  const input = { text, register, situation, context };
-  return call<SayIt>("/api/say", input, (c, m) => ask(c, m, sayRequest(input)));
+const useLocal = () => isNative && getSettings().engine === "local";
+
+async function viaLocal<T>(run: () => Promise<T>): Promise<T> {
+  const model = modelById(getSettings().localModel);
+  const status = await modelStatus(model).catch(() => null);
+  if (status?.state !== "ready") throw new Error(ERRORS.no_model);
+  try {
+    return await run();
+  } catch (error) {
+    console.warn("local model failed", error);
+    throw new Error(ERRORS.local_failed);
+  }
 }
 
-export function heard(text: string, context: string[]) {
+export function sayIt(
+  text: string,
+  register: Register,
+  situation: string,
+  context: string[],
+  onProgress?: (p: Progress) => void,
+): Promise<SayIt> {
+  // Exactly a phrasebook sentence: answer instantly, offline, with the curated native wording.
+  const best = searchPhrases(text, 1)[0];
+  if (best && best.score >= 0.97 && register === "auto") return Promise.resolve(phraseAsResult(best, text));
+
+  if (useLocal()) return viaLocal(() => sayLocal(text, register, situation, context, onProgress));
+  const input = { text, register, situation, context };
+  return viaClaude<SayIt>("/api/say", input, (c, m) => ask(c, m, sayRequest(input)));
+}
+
+export function heard(text: string, context: string[], onProgress?: (p: Progress) => void) {
+  if (useLocal()) return viaLocal(() => heardLocal(text, context, onProgress));
   const input = { text, context };
-  return call<Heard>("/api/heard", input, (c, m) => ask(c, m, heardRequest(input)));
+  return viaClaude<Heard>("/api/heard", input, (c, m) => ask(c, m, heardRequest(input)));
 }
 
 /** Quick check used by the settings screen. */
@@ -99,18 +133,100 @@ export async function testKey(apiKey: string): Promise<string> {
   }
 }
 
+const TENSE_AR: Record<string, string> = {
+  presente: "المضارع",
+  "passato prossimo": "الماضي",
+  imperfetto: "الماضي المستمر",
+  "futuro semplice": "المستقبل",
+  "condizionale presente": "الشرطي",
+  "congiuntivo presente": "صيغة الاحتمال",
+  imperativo: "الأمر",
+  "participio passato": "اسم المفعول",
+  gerundio: "الـ gerundio (بيعمل)",
+  infinito: "المصدر",
+};
+const NO_PERSON = new Set(["infinito", "participio passato", "gerundio"]);
+
+/**
+ * Verb facts come from the rule engine, never from a model: the lemma, the exact tense and person
+ * of this form, and all conjugation tables.
+ */
+function withVerbRules(info: WordInfo | null, word: string): WordInfo | null {
+  const hits = analyzeVerb(word, info?.pos === "verb" ? info.lemma : "");
+  const hit = hits.find((h) => h.lemma === info?.lemma) ?? hits[0];
+  const lemma = hit?.lemma ?? (info?.pos === "verb" ? info.lemma : "");
+  const conj = lemma ? conjugate(lemma) : null;
+  if (!conj) return info;
+
+  const rule = hit
+    ? `من الفعل ${conj.infinitive} · ${TENSE_AR[hit.tense] ?? hit.tense}` +
+      (NO_PERSON.has(hit.tense) ? "" : ` · ${hit.person}`) +
+      (hit.clitic ? ` · ومعاه الضمير «${hit.clitic}»` : "")
+    : "";
+  const base: WordInfo = info ?? {
+    word,
+    lemma: conj.infinitive,
+    pos: "verb",
+    pos_ar: "فعل",
+    meanings_ar: [],
+    meaning_here_ar: "",
+    pron_ar: pronounce(word),
+    ipa: "",
+    how_formed_ar: "",
+    noun_info: { gender: "", singular: "", plural: "", feminine: "" },
+    verb: { infinitive: "", auxiliary: "", past_participle: "", gerund: "", group_ar: "", tense_here: "", person_here: "", tenses: [] },
+    origin_ar: "",
+    family: [],
+    examples: [],
+    memory_tip_ar: "",
+  };
+  const inTable = hit && conj.tenses.some((t) => t.name_it === hit.tense);
+  return {
+    ...base,
+    lemma: conj.infinitive,
+    pos: "verb",
+    pos_ar: "فعل",
+    how_formed_ar: [rule, base.how_formed_ar].filter(Boolean).join("\n"),
+    verb: {
+      infinitive: conj.infinitive,
+      auxiliary: conj.auxiliary,
+      past_participle: conj.past_participle,
+      gerund: conj.gerund,
+      group_ar: conj.group_ar,
+      tense_here: inTable ? hit.tense : "",
+      person_here: inTable ? hit.person : "",
+      tenses: conj.tenses,
+    },
+  };
+}
+
 // Word lookups are cached per word+sentence so a second long-press is instant (and free).
-const WORD_CACHE = "dillo.words.v1";
+const WORD_CACHE = "dillo.words.v2";
 const wordCache = load<Record<string, WordInfo>>(WORD_CACHE, {});
 
-export async function lookupWord(word: string, sentence: string): Promise<WordInfo> {
-  const key = `${word.toLowerCase()}|${sentence}`;
+export async function lookupWord(word: string, sentence: string, onProgress?: (p: Progress) => void): Promise<WordInfo> {
+  const key = `${getSettings().engine}|${word.toLowerCase()}|${sentence}`;
   if (wordCache[key]) return wordCache[key];
   const input = { word, sentence };
-  const info = await call<WordInfo>("/api/word", input, (c, m) => ask(c, m, wordRequest(input)));
-  wordCache[key] = info;
-  const keys = Object.keys(wordCache);
-  if (keys.length > 300) delete wordCache[keys[0]];
-  save(WORD_CACHE, wordCache);
-  return info;
+  let info: WordInfo | null = null;
+  let failure: Error | null = null;
+  try {
+    info = useLocal()
+      ? await viaLocal(() => wordLocal(word, sentence, onProgress))
+      : await viaClaude<WordInfo>("/api/word", input, (c, m) => ask(c, m, wordRequest(input)));
+  } catch (e) {
+    failure = e as Error;
+  }
+  const merged = withVerbRules(info, word);
+  if (!merged) throw failure ?? new Error("حصلت مشكلة، جرب تاني.");
+  if (info) {
+    wordCache[key] = merged;
+    const keys = Object.keys(wordCache);
+    if (keys.length > 300) delete wordCache[keys[0]];
+    save(WORD_CACHE, wordCache);
+  } else if (failure) {
+    // The verb facts still show offline; explain why the meaning is missing.
+    merged.memory_tip_ar = failure.message;
+  }
+  return merged;
 }

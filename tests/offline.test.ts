@@ -114,3 +114,53 @@ test("non-verbs", () => {
   assert.equal(conjugate("casa"), null);
   assert.equal(conjugate("bene"), conjugate("bene")); // "bene" ends in -ene: not a verb ending
 });
+
+import { analyzeVerb } from "../src/lib/italian/analyze.ts";
+import { pronounce } from "../src/lib/italian/pronounce.ts";
+
+const FORMS: [string, string, string, string][] = [
+  ["sporca", "sporcare", "presente", "lui/lei"],
+  ["parliamo", "parlare", "presente", "noi"],
+  ["andrò", "andare", "futuro semplice", "io"],
+  ["vorrei", "volere", "condizionale presente", "io"],
+  ["facevo", "fare", "imperfetto", "io"],
+  ["preso", "prendere", "participio passato", "io"],
+  ["capiscono", "capire", "presente", "loro"],
+  ["prendilo", "prendere", "imperativo", "tu"],
+  ["dimmi", "dire", "imperativo", "tu"],
+  ["parlarne", "parlare", "infinito", "io"],
+  ["siamo", "essere", "presente", "noi"],
+];
+for (const [word, lemma, tense, person] of FORMS) {
+  test(`analyze ${word}`, () => {
+    const hits = analyzeVerb(word);
+    assert.ok(
+      hits.some((h) => h.lemma === lemma && h.tense === tense && h.person === person),
+      `${word}: ${JSON.stringify(hits)}`,
+    );
+  });
+}
+
+test("analyze unknown verb with model hint", () => {
+  const hits = analyzeVerb("sbadiglio", "sbadigliare");
+  assert.ok(hits.some((h) => h.lemma === "sbadigliare" && h.person === "io"));
+});
+
+test("pronounce", () => {
+  assert.equal(pronounce("Ciao, come stai?"), "تشاو، كومي ستاي؟");
+  assert.equal(pronounce("giorno"), "دجورنو");
+  assert.equal(pronounce("acqua"), "أكّوا");
+});
+
+import { glossary, searchPhrases } from "../src/lib/knowledge/search.ts";
+
+test("phrasebook finds the native wording", () => {
+  assert.equal(searchPhrases("بكام ده")[0].phrase.it, "Quanto costa?");
+  assert.equal(searchPhrases("انا تعبان اوي النهارده")[0].phrase.it, "Sono stanco morto.");
+  assert.equal(searchPhrases("مش عايز اشيل الاكل من هنا عشان مايتوسخش")[0].score, 1);
+});
+
+test("Egyptian glossary handles prefixes", () => {
+  const words = glossary("قول لصاحبي اني مش هقدر اجي النهارده").map((g) => g.word);
+  for (const w of ["لصاحبي", "هقدر", "النهارده"]) assert.ok(words.includes(w), w);
+});

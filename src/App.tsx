@@ -7,7 +7,9 @@ import { SettingsSheet } from "./components/SettingsSheet.tsx";
 import { ShowMode } from "./components/ShowMode.tsx";
 import { WordSheet } from "./components/WordSheet.tsx";
 import { dueItems, useNotebook } from "./lib/notebook.ts";
-import { needsKey, useSettings } from "./lib/settings.ts";
+import { modelById, useModelStatus } from "./lib/local/brain.ts";
+import { isNative, needsKey, useSettings } from "./lib/settings.ts";
+import { load, save } from "./lib/storage.ts";
 
 type Tab = "say" | "live" | "book";
 
@@ -15,15 +17,22 @@ export function App() {
   const [tab, setTab] = useState<Tab>("say");
   const [word, setWord] = useState<{ word: string; sentence: string } | null>(null);
   const [show, setShow] = useState("");
-  const missingKey = needsKey(useSettings());
-  // First launch of the app: go straight to setting the key.
-  const [settingsOpen, setSettingsOpen] = useState(missingKey);
+  const settings = useSettings();
+  const missingKey = needsKey(settings);
+  const local = useModelStatus(modelById(settings.localModel));
+  const missingModel = isNative && settings.engine === "local" && local.status !== null && local.status.state !== "ready";
+  // First launch of the app: open the settings to set up the model.
+  const [settingsOpen, setSettingsOpen] = useState(() => isNative && !load("dillo.onboarded", false));
   const due = dueItems(useNotebook()).length;
 
   const onWord = useCallback((w: string, sentence: string) => setWord({ word: w, sentence }), []);
   const closeWord = useCallback(() => setWord(null), []);
   const closeShow = useCallback(() => setShow(""), []);
-  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const closeSettings = useCallback(() => {
+    save("dillo.onboarded", true);
+    setSettingsOpen(false);
+    local.refresh();
+  }, [local]);
 
   return (
     <div className="app">
@@ -49,6 +58,16 @@ export function App() {
         <button className="setup-banner glass" onClick={() => setSettingsOpen(true)}>
           <b>خطوة واحدة وتبدأ</b>
           <span>حط مفتاح Claude API عشان التطبيق يشتغل ←</span>
+        </button>
+      )}
+      {missingModel && (
+        <button className="setup-banner glass" onClick={() => setSettingsOpen(true)}>
+          <b>{local.status?.state === "downloading" ? "الموديل بيتنزّل…" : "نزّل المخ على موبايلك"}</b>
+          <span>
+            {local.status?.state === "downloading"
+              ? "تقدر تستخدم الجمل الجاهزة لحد ما يخلص ←"
+              : "مرة واحدة بس، وبعدها يشتغل من غير نت ←"}
+          </span>
         </button>
       )}
 

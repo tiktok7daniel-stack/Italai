@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { sayIt, type Register, type SayIt } from "../lib/api.ts";
+import { sayIt, type Progress, type Register, type SayIt } from "../lib/api.ts";
+import { phrasesIn, type Phrase } from "../lib/knowledge/search.ts";
+import type { Category } from "../lib/knowledge/phrases.ts";
+import { phraseAsResult } from "../lib/local/engine.ts";
+import { speak } from "../lib/tts.ts";
 import { load, save } from "../lib/storage.ts";
 import { speechSupported } from "../lib/speech.ts";
-import { IconKeyboard, IconMic, IconSend } from "./Icons.tsx";
+import { IconKeyboard, IconMic, IconPlay, IconSend } from "./Icons.tsx";
 import { MicButton } from "./MicButton.tsx";
 import { SayResult } from "./SayResult.tsx";
 
@@ -12,13 +16,14 @@ const REGISTERS: { id: Register; label: string }[] = [
   { id: "polite", label: "باحترام (Lei)" },
 ];
 
-const SITUATIONS = ["الشغل", "كافيه / بار", "الجيران", "الدكتور", "السوبرماركت", "مع صحابي", "مواصلات", "ورق وحكومة"];
+const SITUATIONS: Category[] = ["عام", "الشغل", "كافيه / بار", "مع صحابي", "مشاعر", "خلاف", "الجيران", "الدكتور", "السوبرماركت", "مواصلات", "ورق وحكومة", "البيت", "التليفون"];
 
 type WordHandler = (word: string, sentence: string) => void;
 
 export function SayTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: string) => void }) {
   const [register, setRegister] = useState<Register>(() => load("dillo.register", "auto"));
-  const [situation, setSituation] = useState("");
+  const [situation, setSituation] = useState<Category | "">("");
+  const [progress, setProgress] = useState<Progress | null>(null);
   const [typing, setTyping] = useState(!speechSupported);
   const [draft, setDraft] = useState("");
   const [interim, setInterim] = useState("");
@@ -33,8 +38,9 @@ export function SayTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: s
     setBusy(true);
     setError("");
     setResult(null);
+    setProgress(null);
     try {
-      setResult(await sayIt(text, register, situation, []));
+      setResult(await sayIt(text, register, situation, [], setProgress));
       setDraft("");
     } catch (e) {
       setError((e as Error).message);
@@ -127,9 +133,31 @@ export function SayTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: s
         </div>
       )}
 
-      {busy && <Thinking />}
+      {busy && (
+        <Thinking
+          label={
+            progress?.stage === "loading"
+              ? "بحمّل الموديل في الذاكرة… (أول مرة بس)"
+              : progress?.stage === "thinking" && progress.chars > 0
+                ? "بيكتب الرد…"
+                : undefined
+          }
+        />
+      )}
       {error && <div className="error">{error}</div>}
       {result && <SayResult r={result} onWord={onWord} onShow={onShow} />}
+
+      {situation && !busy && !result && (
+        <PhraseList
+          title={situation}
+          phrases={phrasesIn(situation)}
+          onPick={(p) => {
+            setAsked(p.ar);
+            setError("");
+            setResult(phraseAsResult({ phrase: p, score: 1 }, p.ar));
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -140,5 +168,25 @@ export function Thinking({ label = "بفكر فيها زي واحد إيطالي
       <span className="orb" />
       <span>{label}</span>
     </div>
+  );
+}
+
+/** Ready-made native phrases for a situation; works offline. */
+function PhraseList({ title, phrases, onPick }: { title: string; phrases: Phrase[]; onPick: (p: Phrase) => void }) {
+  return (
+    <section className="card glass phrase-list">
+      <div className="card-title">جمل جاهزة · {title}</div>
+      {phrases.map((p) => (
+        <div className="phrase" key={p.ar + p.it}>
+          <button className="phrase-main" onClick={() => onPick(p)}>
+            <span className="phrase-ar">{p.ar}</span>
+            <span className="phrase-it it" dir="ltr">{p.it}</span>
+          </button>
+          <button className="icon-btn sm" onClick={() => speak(p.it.split(" / ")[0])} aria-label="اسمع">
+            <IconPlay size={16} />
+          </button>
+        </div>
+      ))}
+    </section>
   );
 }

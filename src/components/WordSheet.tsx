@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { lookupWord, type WordInfo } from "../lib/api.ts";
+import { lookupWord, type Progress, type WordInfo } from "../lib/api.ts";
 import { addItem, hasItem, useNotebook } from "../lib/notebook.ts";
 import { speak } from "../lib/tts.ts";
 import { IconBookmark, IconBulb, IconClose, IconPlay } from "./Icons.tsx";
@@ -10,13 +10,15 @@ export function WordSheet({ word, sentence, onClose }: { word: string; sentence:
   const [info, setInfo] = useState<WordInfo | null>(null);
   const [error, setError] = useState("");
   const [tense, setTense] = useState(0);
+  const [progress, setProgress] = useState<Progress | null>(null);
   useNotebook();
 
   useEffect(() => {
     let live = true;
     setInfo(null);
     setError("");
-    lookupWord(word, sentence)
+    setProgress(null);
+    lookupWord(word, sentence, setProgress)
       .then((i) => {
         if (!live) return;
         setInfo(i);
@@ -85,13 +87,18 @@ export function WordSheet({ word, sentence, onClose }: { word: string; sentence:
 
         <div className="sheet-body">
           {error && <div className="error">{error}</div>}
-          {!info && !error && <Skeleton />}
+          {!info && !error && (
+            <>
+              {progress?.stage === "loading" && <div className="muted small">بحمّل الموديل في الذاكرة… (أول مرة بس)</div>}
+              <Skeleton />
+            </>
+          )}
           {info && (
             <>
               <section className="meaning-hero">
-                <div className="meaning-here">{info.meaning_here_ar}</div>
+                {info.meaning_here_ar && <div className="meaning-here">{info.meaning_here_ar}</div>}
                 <div className="muted small">
-                  النطق: <b>{info.pron_ar}</b> <span dir="ltr" className="ipa">/{info.ipa}/</span>
+                  النطق: <b>{info.pron_ar}</b> {info.ipa && <span dir="ltr" className="ipa">/{info.ipa}/</span>}
                 </div>
                 {info.meanings_ar.length > 1 && (
                   <div className="chips">
@@ -102,9 +109,11 @@ export function WordSheet({ word, sentence, onClose }: { word: string; sentence:
                 )}
               </section>
 
-              <Block title="الكلمة دي جت إزاي؟">
-                <p>{info.how_formed_ar}</p>
-              </Block>
+              {info.how_formed_ar && (
+                <Block title="الكلمة دي جت إزاي؟">
+                  <p className="pre-line">{info.how_formed_ar}</p>
+                </Block>
+              )}
 
               {info.verb.tenses.length > 0 && t && (
                 <Block title={`تصريف ${info.verb.infinitive}`}>
@@ -172,9 +181,11 @@ export function WordSheet({ word, sentence, onClose }: { word: string; sentence:
                 </Block>
               )}
 
-              <Block title="أصل الكلمة">
-                <p>{info.origin_ar}</p>
-              </Block>
+              {info.origin_ar && (
+                <Block title="أصل الكلمة">
+                  <p>{info.origin_ar}</p>
+                </Block>
+              )}
 
               {info.examples.length > 0 && (
                 <Block title="أمثلة من الحياة">

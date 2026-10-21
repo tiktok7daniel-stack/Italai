@@ -1,0 +1,193 @@
+// How Italians actually say everyday things, keyed by what an Egyptian would want to say.
+// [category, Egyptian Arabic (variants separated by "|"), natural Italian, short note in Arabic]
+// Written once and shipped with the app: it works offline and is shown instantly on a match,
+// and the closest entries are given to the on-device model as examples of the native style.
+
+export type Category =
+  | "عام" | "مشاعر" | "الشغل" | "كافيه / بار" | "الجيران" | "الدكتور" | "السوبرماركت"
+  | "مع صحابي" | "مواصلات" | "ورق وحكومة" | "خلاف" | "البيت" | "التليفون";
+
+export type PhraseRow = [Category, string, string, string];
+
+export const PHRASES: PhraseRow[] = [
+  // عام
+  ["عام", "مش فاهم|مفهمتش", "Scusa, non ho capito.", "«Scusa» قبلها بتخليها مؤدبة"],
+  ["عام", "ممكن تعيد تاني|قول تاني", "Me lo puoi ripetere?", "حرفياً: ممكن تعيدهولي؟"],
+  ["عام", "ممكن تتكلم بالراحة|اتكلم ببطء", "Puoi parlare un po' più piano?", "piano = براحة/بالراحة"],
+  ["عام", "يعني ايه الكلمة دي|معنى الكلمة دي ايه", "Che vuol dire questa parola?", "che vuol dire = يعني إيه"],
+  ["عام", "بتقولوها ازاي بالايطالي", "Come si dice in italiano?", "سؤال أساسي هتستخدمه كتير"],
+  ["عام", "انا لسه بتعلم ايطالي", "Sto ancora imparando l'italiano.", "الطلاينة بيقدّروا اللي بيحاول"],
+  ["عام", "ماشي|تمام|اوكي", "Va bene.", "أشهر «تمام» إيطالي. ممكن كمان «Ok» أو «D'accordo»"],
+  ["عام", "اكيد|طبعا", "Certo!", "ممكن «Certo che sì!» للتأكيد"],
+  ["عام", "مفيش مشكلة|ولا يهمك|عادي", "Non c'è problema, figurati.", "figurati = ولا يهمك/العفو"],
+  ["عام", "العفو|على ايه", "Figurati! / Di niente.", "رد طبيعي على grazie"],
+  ["عام", "شكرا جدا|متشكر اوي", "Grazie mille!", "حرفياً: ألف شكر"],
+  ["عام", "اسف|معلش|اسف جدا", "Scusa! / Mi dispiace tanto.", "scusa للحاجات الصغيرة، mi dispiace للزعل الحقيقي"],
+  ["عام", "لحظة واحدة|ثانية|استنى ثانية", "Un attimo! / Aspetta un secondo.", "un attimo بتتقال طول الوقت"],
+  ["عام", "مش عارف|معرفش", "Non lo so.", "ممكن «Boh!» بالعامية = معرفش والله"],
+  ["عام", "يمكن|ممكن|جايز", "Forse. / Può darsi.", "può darsi = جايز"],
+  ["عام", "اظن كده|غالبا", "Mi sa di sì.", "mi sa che… = أظن إن…، طبيعية جداً"],
+  ["عام", "مش متأكد", "Non ne sono sicuro.", "للبنت: sicura"],
+  ["عام", "خلاص كفاية|بس كده", "Basta così, grazie.", "basta = كفاية"],
+  ["عام", "يلا بينا|يلا", "Dai, andiamo!", "dai = يلا (تشجيع)"],
+  ["عام", "على فكرة", "Comunque… / Tra l'altro…", "comunque كلمة سحرية لتغيير الموضوع"],
+  ["عام", "بجد|بجد؟|انت بتتكلم بجد", "Davvero? / Sul serio?", "sul serio = بجد"],
+  ["عام", "مستحيل|مش معقول", "Ma dai! / Non ci credo!", "ma dai = يا راجل! مش معقول"],
+  ["عام", "صباح الخير", "Buongiorno!", "لحد الضهر تقريباً"],
+  ["عام", "مساء الخير", "Buonasera!", "من بعد الضهر"],
+  ["عام", "ازيك|عامل ايه", "Come stai? / Come va?", "مع حد مش قريب: Come sta?"],
+  ["عام", "الحمد لله كويس|انا كويس", "Bene, grazie! E tu?", "دايماً رجّع السؤال: e tu?"],
+  ["عام", "اشوفك بعدين|سلام", "Ci vediamo! / A dopo!", "a dopo = لما نتقابل بعدين النهارده"],
+  ["عام", "مع السلامة|باي", "Ciao, ciao! / Buona giornata!", "buona giornata = يومك سعيد"],
+  ["عام", "اتشرفت بمعرفتك|فرصة سعيدة", "Piacere di conoscerti!", "مع حد أكبر: Piacere di conoscerla"],
+
+  // مشاعر
+  ["مشاعر", "انا فرحان اوي|مبسوط جدا", "Sono felicissimo!", "للبنت: felicissima"],
+  ["مشاعر", "انا مبسوط اني شفتك|فرحت اني شفتك", "Che bello vederti!", "che bello… = يا سلام على…"],
+  ["مشاعر", "انا تعبان|انا تعبان اوي", "Sono stanco morto.", "stanco morto = تعبان موت"],
+  ["مشاعر", "انا زهقان|مليت", "Mi sto annoiando. / Che noia!", "che noia = يا ملل"],
+  ["مشاعر", "انا متضايق|مخنوق", "Sono un po' giù.", "giù = مكتئب/مش في المود"],
+  ["مشاعر", "انا متعصب|انا مضايق منك", "Sono arrabbiato.", "ولو مضايق من حد: Ce l'ho con te"],
+  ["مشاعر", "قلقان|انا قلقان", "Sono preoccupato.", "ممكن كمان: Ho un po' d'ansia"],
+  ["مشاعر", "وحشتني|وحشتيني", "Mi sei mancato! / Mi sei mancata!", "حسب الشخص: مذكر/مؤنث"],
+  ["مشاعر", "بحبك", "Ti voglio bene.", "للصحاب والعيلة. «Ti amo» للحبيبة بس"],
+  ["مشاعر", "ربنا معاك|بالتوفيق", "In bocca al lupo!", "الرد عليها: Crepi! (مش grazie)"],
+  ["مشاعر", "مبروك", "Complimenti! / Congratulazioni!", "complimenti أشيع في الكلام"],
+  ["مشاعر", "الف سلامة عليك", "Mi dispiace, rimettiti presto!", "rimettiti presto = تقوم بالسلامة"],
+  ["مشاعر", "يا خسارة|خسارة", "Che peccato!", "peccato = يا خسارة"],
+  ["مشاعر", "حلو اوي|جميل جدا", "Che bello! / Bellissimo!", "che figata! بالعامية للشباب"],
+  ["مشاعر", "مقرف|وحش اوي", "Che schifo!", "schifo = قرف"],
+  ["مشاعر", "مش قادر استنى", "Non vedo l'ora!", "حرفياً: مش شايف الساعة"],
+  ["مشاعر", "ولا يفرق معايا|مش فارقة", "Per me è uguale. / Fa lo stesso.", "fa lo stesso = نفس الحاجة"],
+  ["مشاعر", "مش في المود", "Non sono dell'umore.", "أو بالعامية: Non mi va"],
+  ["مشاعر", "مش عايز|مليش نفس", "Non mi va.", "أشيع بكتير من «non voglio»"],
+
+  // الشغل
+  ["الشغل", "انا هتأخر شوية", "Arrivo un po' in ritardo, scusate.", "arrivo = جاي (بالمضارع)"],
+  ["الشغل", "خلصت الشغل|خلصت", "Ho finito.", "ho finito = خلصت"],
+  ["الشغل", "محتاج مساعدة|ممكن تساعدني", "Mi dai una mano?", "dare una mano = يساعد (يدي إيد)"],
+  ["الشغل", "اعمل ايه دلوقتي|اعمل ايه بعد كده", "Cosa devo fare adesso?", "adesso = دلوقتي"],
+  ["الشغل", "مش فاهم اعملها ازاي", "Non ho capito come si fa.", "come si fa = بتتعمل إزاي"],
+  ["الشغل", "ممكن اخد اجازة بكرة", "Posso prendermi un giorno libero domani?", "giorno libero = يوم أجازة"],
+  ["الشغل", "انا عيان مش هقدر اجي", "Sto male, oggi non riesco a venire.", "non riesco = مش قادر"],
+  ["الشغل", "امتى بنقبض|المرتب امتى", "Quando ci pagano?", "ci pagano = بيدفعولنا"],
+  ["الشغل", "ابدأ امتى", "Quando inizio?", "أو: Da quando posso cominciare?"],
+  ["الشغل", "خلاص فهمت|تمام فهمت", "Ok, ho capito.", "ممكن كمان: Chiaro!"],
+  ["الشغل", "استراحة|عايز اخد بريك", "Faccio una pausa di cinque minuti.", "pausa = بريك"],
+  ["الشغل", "اشتغلت كتير النهارده", "Oggi ho lavorato un sacco.", "un sacco = كتير جداً (عامية)"],
+  ["الشغل", "مش شغلي|دي مش مسؤوليتي", "Non tocca a me.", "tocca a te = دورك/مسؤوليتك"],
+  ["الشغل", "انت عندك حق", "Hai ragione.", "avere ragione = عنده حق"],
+  ["الشغل", "عندي فكرة", "Ho un'idea!", ""],
+  ["الشغل", "هعملها حالا", "Lo faccio subito.", "subito = حالاً"],
+
+  // كافيه / بار
+  ["كافيه / بار", "عايز قهوة|واحد قهوة", "Un caffè, per favore.", "caffè في إيطاليا = إسبريسو"],
+  ["كافيه / بار", "عايز كابتشينو وكرواسون", "Un cappuccino e un cornetto, grazie.", "cornetto = الكرواسون في إيطاليا"],
+  ["كافيه / بار", "الحساب|عايز ادفع|كام الحساب", "Il conto, per favore.", "في البار: Quanto le devo?"],
+  ["كافيه / بار", "عليا انا|انا اللي هدفع", "Offro io!", "offro io = عليّا"],
+  ["كافيه / بار", "كل واحد يدفع لنفسه", "Facciamo alla romana?", "alla romana = كل واحد يدفع حقه"],
+  ["كافيه / بار", "في مكان فاضي", "C'è posto?", "c'è = في (موجود)"],
+  ["كافيه / بار", "الحمام فين", "Dov'è il bagno?", ""],
+  ["كافيه / بار", "عايز مية", "Un bicchiere d'acqua, per favore.", "naturale = عادية، frizzante = بصودا"],
+  ["كافيه / بار", "من غير سكر", "Senza zucchero, grazie.", ""],
+  ["كافيه / بار", "تاخد ايه|تشرب ايه", "Cosa prendi?", "prendere = ياخد/يطلب أكل أو شرب"],
+  ["كافيه / بار", "ممكن الواي فاي|باسورد الواي فاي", "Qual è la password del Wi-Fi?", ""],
+  ["كافيه / بار", "ممكن تيك اواي|اخده معايا", "Me lo dà da portare via?", "da portare via = تيك أواي"],
+
+  // الجيران
+  ["الجيران", "معلش لو ازعجتك", "Scusi il disturbo.", "Scusi (بأدب) للجيران الكبار"],
+  ["الجيران", "ممكن توطي الصوت", "Potreste abbassare un po' la musica, per favore?", "potreste = ممكن (للجمع بأدب)"],
+  ["الجيران", "الزبالة بتتحط فين", "Dove si butta la spazzatura?", "spazzatura = زبالة"],
+  ["الجيران", "انا الساكن الجديد", "Sono il nuovo vicino, piacere!", "vicino = جار"],
+  ["الجيران", "لو احتاجت حاجة انا موجود", "Se ti serve qualcosa, chiedi pure.", "chiedi pure = اطلب براحتك"],
+  ["الجيران", "في تسريب مية", "C'è una perdita d'acqua.", "perdita = تسريب"],
+
+  // الدكتور
+  ["الدكتور", "عايز احجز ميعاد", "Vorrei prendere un appuntamento.", "vorrei = كنت عايز (بأدب)"],
+  ["الدكتور", "بطني بتوجعني|عندي مغص", "Ho mal di pancia.", "mal di… = وجع في…"],
+  ["الدكتور", "راسي بتوجعني|عندي صداع", "Ho mal di testa.", ""],
+  ["الدكتور", "عندي سخونية|عندي حرارة", "Ho la febbre.", ""],
+  ["الدكتور", "من امبارح|من يومين", "Da ieri. / Da due giorni.", "da = من (مدة)"],
+  ["الدكتور", "بيوجعني هنا", "Mi fa male qui.", "mi fa male = بيوجعني"],
+  ["الدكتور", "عندي حساسية من", "Sono allergico a…", "للبنت: allergica"],
+  ["الدكتور", "الدوا ده باخده ازاي", "Come devo prendere questa medicina?", ""],
+  ["الدكتور", "محتاج شهادة مرضية", "Mi serve un certificato medico.", "mi serve = محتاج"],
+  ["الدكتور", "فين اقرب صيدلية", "Dov'è la farmacia più vicina?", ""],
+
+  // السوبرماركت
+  ["السوبرماركت", "بكام ده|ده بكام", "Quanto costa?", "للجمع: Quanto costano?"],
+  ["السوبرماركت", "فين الرز|بدور على", "Scusi, dove trovo il riso?", "dove trovo = ألاقي فين"],
+  ["السوبرماركت", "ممكن كيس", "Mi dà una busta, per favore?", "الأكياس غالباً بفلوس"],
+  ["السوبرماركت", "هدفع كاش|كاش", "Pago in contanti.", "بالكارت: con la carta"],
+  ["السوبرماركت", "ده حلال|في لحمة حلال", "Avete carne halal?", ""],
+  ["السوبرماركت", "فيه خنزير", "Contiene maiale?", "maiale = خنزير"],
+  ["السوبرماركت", "ممكن ربع كيلو", "Due etti, per favore.", "etto = ١٠٠ جرام، الطلاينة بيحسبوا بيه"],
+  ["السوبرماركت", "لا شكرا كده تمام", "No, grazie, a posto così.", "a posto così = كده تمام"],
+
+  // مع صحابي
+  ["مع صحابي", "تيجي نخرج|يلا نخرج", "Ti va di uscire?", "ti va di…? = ليك مزاج…؟"],
+  ["مع صحابي", "نتقابل امتى|امتى نتقابل", "A che ora ci vediamo?", ""],
+  ["مع صحابي", "انا جاي حالا|جاي في الطريق", "Arrivo! Sono per strada.", "arrivo = جاي"],
+  ["مع صحابي", "استناني", "Aspettami!", ""],
+  ["مع صحابي", "انت بتهزر|بتهزر", "Mi stai prendendo in giro?", "prendere in giro = يتريق/يهزر على"],
+  ["مع صحابي", "بهزر معاك", "Sto scherzando!", ""],
+  ["مع صحابي", "مالك|في ايه", "Che c'è? / Che succede?", "che c'è = مالك/فيه إيه"],
+  ["مع صحابي", "ولا حاجة|مفيش حاجة", "Niente, tranquillo.", "tranquillo = اهدى/مفيش حاجة"],
+  ["مع صحابي", "اهدى|روق", "Stai tranquillo! / Calmati!", "للبنت: tranquilla"],
+  ["مع صحابي", "انت جامد|انت جامد اوي", "Sei un grande!", "un grande = جامد/محترم"],
+  ["مع صحابي", "ده رخم|رخم", "È un tipo pesante.", "pesante = رخم/تقيل"],
+  ["مع صحابي", "خلاص سيبك منه|انساه", "Lascia perdere.", "lascia perdere = سيبك/انسى"],
+  ["مع صحابي", "انا مش فاضي النهارده", "Oggi non posso, sono impegnato.", "impegnato = مشغول"],
+  ["مع صحابي", "خليها مرة تانية", "Facciamo un'altra volta?", ""],
+  ["مع صحابي", "ابعتلي رسالة|ابعتلي على الواتس", "Mandami un messaggio su WhatsApp.", ""],
+  ["مع صحابي", "انا جعان|جعان اوي", "Ho una fame da lupi!", "حرفياً: جوع ديابة"],
+  ["مع صحابي", "نطلب بيتزا", "Ordiniamo una pizza?", ""],
+
+  // مواصلات
+  ["مواصلات", "التذكرة بكام", "Quanto costa il biglietto?", ""],
+  ["مواصلات", "القطر ده رايح", "Questo treno va a…?", ""],
+  ["مواصلات", "الاتوبيس بييجي امتى", "Quando passa l'autobus?", "passa = بيعدي"],
+  ["مواصلات", "انزل فين|المحطة الجاية", "Scendo alla prossima fermata?", "scendere = ينزل"],
+  ["مواصلات", "انا تايه", "Mi sono perso.", "للبنت: persa"],
+  ["مواصلات", "بعيد من هنا|قريب", "È lontano da qui?", "vicino = قريب"],
+  ["مواصلات", "ممكن توصلني", "Mi dai un passaggio?", "passaggio = توصيلة"],
+  ["مواصلات", "القطر اتأخر", "Il treno è in ritardo.", ""],
+  ["مواصلات", "فين محطة القطر", "Dov'è la stazione?", ""],
+
+  // ورق وحكومة
+  ["ورق وحكومة", "جاي عشان الاقامة|ورق الاقامة", "Sono qui per il permesso di soggiorno.", "permesso di soggiorno = الإقامة"],
+  ["ورق وحكومة", "محتاج ورق ايه", "Quali documenti servono?", ""],
+  ["ورق وحكومة", "فين اقف|الدور فين", "Dove devo fare la fila?", "fila = طابور"],
+  ["ورق وحكومة", "معايا ميعاد", "Ho un appuntamento.", ""],
+  ["ورق وحكومة", "ممكن تشرحلي تاني ببساطة", "Me lo può spiegare in modo semplice?", "può = حضرتك تقدر"],
+  ["ورق وحكومة", "امضي فين", "Dove devo firmare?", "firmare = يمضي"],
+  ["ورق وحكومة", "الكود الضريبي", "Il codice fiscale", "أهم رقم في إيطاليا"],
+
+  // خلاف
+  ["خلاف", "لا مش موافق", "No, non sono d'accordo.", ""],
+  ["خلاف", "مش كده|مش ده اللي قصدته", "Non intendevo questo.", "intendere = يقصد"],
+  ["خلاف", "سيبني في حالي", "Lasciami in pace!", ""],
+  ["خلاف", "مش عايز اشيل الاكل من هنا عشان مايتوسخش", "No dai, lascia stare il cibo lì, sennò si sporca.", "sennò = وإلا (عامية لـ altrimenti)"],
+  ["خلاف", "متلمسش ده", "Non toccare, per favore.", ""],
+  ["خلاف", "انت غلطان", "Guarda che ti sbagli.", "guarda che = بص بقى (لتأكيد الاعتراض)"],
+  ["خلاف", "انا مش قصدي|مكنش قصدي", "Non l'ho fatto apposta.", "apposta = بقصد"],
+  ["خلاف", "مش مشكلتي", "Non è un problema mio.", ""],
+  ["خلاف", "بلاش كده|متعملش كده", "Dai, non fare così.", ""],
+  ["خلاف", "انا قلتلك قبل كده", "Te l'avevo detto!", ""],
+  ["خلاف", "خليك في حالك", "Fatti gli affari tuoi.", "بتتقال بحدة، استخدمها بحذر"],
+
+  // البيت
+  ["البيت", "الاكل جاهز", "È pronto da mangiare!", "أو بس: È pronto!"],
+  ["البيت", "اقفل الباب", "Chiudi la porta, per favore.", ""],
+  ["البيت", "النور قطع|الكهربا قطعت", "È saltata la luce.", "saltare = تقطع (الكهربا)"],
+  ["البيت", "المية سخنة", "L'acqua è calda.", ""],
+  ["البيت", "انا رايح انام", "Vado a dormire.", ""],
+  ["البيت", "مين هيغسل المواعين", "Chi lava i piatti?", "piatti = أطباق"],
+
+  // التليفون
+  ["التليفون", "الو مين معايا", "Pronto, chi parla?", "pronto = ألو"],
+  ["التليفون", "مش سامعك", "Non ti sento bene.", ""],
+  ["التليفون", "هكلمك بعدين", "Ti richiamo dopo.", "richiamare = يتصل تاني"],
+  ["التليفون", "الشبكة وحشة", "Non c'è campo.", "campo = شبكة"],
+  ["التليفون", "رقمك كام", "Mi dai il tuo numero?", ""],
+];
