@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { dueItems, grade, removeItem, useNotebook, type NoteItem } from "../lib/notebook.ts";
 import { speak } from "../lib/tts.ts";
-import { IconCheck, IconPlay, IconTrash, IconX } from "./Icons.tsx";
+import { Emblem } from "./Emblem.tsx";
+import { IconBook, IconCheck, IconPlay, IconTrash, IconX } from "./Icons.tsx";
 import { ItalianText } from "./ItalianText.tsx";
 
 type WordHandler = (word: string, sentence: string) => void;
@@ -40,7 +41,7 @@ export function NotebookTab({ onWord }: { onWord: WordHandler }) {
       </div>
 
       <button className="btn primary wide" disabled={due.length === 0} onClick={() => setReviewing(true)}>
-        {due.length ? `راجع دلوقتي (${due.length})` : "مفيش مراجعة النهارده 👌"}
+        {due.length ? `راجع دلوقتي (${due.length})` : "خلصت مراجعة النهارده"}
       </button>
 
       <div className="seg glass">
@@ -59,7 +60,9 @@ export function NotebookTab({ onWord }: { onWord: WordHandler }) {
 
       {shown.length === 0 && (
         <div className="empty glass">
-          <div className="empty-art">📒</div>
+          <Emblem>
+            <IconBook size={30} />
+          </Emblem>
           <p>لسه فاضي. احفظ أي جملة أو كلمة بعلامة الحفظ وهتلاقيها هنا.</p>
         </div>
       )}
@@ -103,7 +106,9 @@ function Review({ queue, onDone }: { queue: NoteItem[]; onDone: () => void }) {
     return (
       <div className="tab review">
         <div className="review-done glass">
-          <div className="empty-art">🎉</div>
+          <Emblem>
+            <IconCheck size={32} />
+          </Emblem>
           <h2>Bravo! خلصت المراجعة</h2>
           <button className="btn primary" onClick={onDone}>رجوع للكشكول</button>
         </div>

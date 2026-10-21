@@ -72,7 +72,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
               {status === "testing" ? "بجرّب المفتاح…" : status === "ok" ? <><IconCheck size={18} /> اتحفظ وشغال</> : "احفظ وجرّب"}
             </button>
             {status && status !== "testing" && status !== "ok" && <div className="error small">{status}</div>}
-            {settings.apiKey && status !== "ok" && <div className="muted small">في مفتاح محفوظ ✓</div>}
+            {settings.apiKey && status !== "ok" && <div className="muted small">في مفتاح محفوظ على الجهاز</div>}
 
             <details className="howto">
               <summary>أجيب المفتاح منين؟</summary>

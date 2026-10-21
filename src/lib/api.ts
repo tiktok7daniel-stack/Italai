@@ -14,8 +14,8 @@ import { load, save } from "./storage.ts";
 export type { Heard, Register, SayIt, WordInfo };
 
 const ERRORS: Record<string, string> = {
-  no_key: "لازم تحط مفتاح Claude API الأول من الإعدادات ⚙️",
-  missing_key: "مفتاح Claude API مش شغال. اتأكد منه في الإعدادات ⚙️",
+  no_key: "لازم تحط مفتاح Claude API الأول من الإعدادات.",
+  missing_key: "مفتاح Claude API مش شغال. اتأكد منه في الإعدادات.",
   rate_limited: "طلبات كتير ورا بعض، استنى ثانية وجرب تاني.",
   refused: "مقدرتش أساعد في الجملة دي.",
   upstream: "في مشكلة مؤقتة في الاتصال، جرب تاني.",

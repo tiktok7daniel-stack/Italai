@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { heard, sayIt, type Heard, type SayIt } from "../lib/api.ts";
 import { speechSupported, useRecognizer } from "../lib/speech.ts";
 import { speak } from "../lib/tts.ts";
-import { IconEar, IconPlay, IconSend, IconStop } from "./Icons.tsx";
+import { Emblem } from "./Emblem.tsx";
+import { IconBubbles, IconEar, IconPlay, IconSend, IconStop } from "./Icons.tsx";
 import { ItalianText } from "./ItalianText.tsx";
 import { MicButton } from "./MicButton.tsx";
 import { SayResult } from "./SayResult.tsx";
@@ -110,7 +111,14 @@ export function LiveTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: 
       <div className="thread">
         {entries.length === 0 && !listener.interim && (
           <div className="empty glass">
-            <div className="empty-art">🇮🇹 ↔ 🇪🇬</div>
+            <Emblem>
+              <IconBubbles size={30} />
+            </Emblem>
+            <div className="lang-pair" dir="ltr">
+              <span>Italiano</span>
+              <i />
+              <span>العربية</span>
+            </div>
             <p>الكلام اللي هتسمعه هيظهر هنا بالإيطالي ومعاه معناه بالمصري. دوسة طويلة على أي كلمة تشرحهالك.</p>
           </div>
         )}

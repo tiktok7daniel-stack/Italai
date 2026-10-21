@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { lookupWord, type WordInfo } from "../lib/api.ts";
 import { addItem, hasItem, useNotebook } from "../lib/notebook.ts";
 import { speak } from "../lib/tts.ts";
-import { IconBookmark, IconClose, IconPlay } from "./Icons.tsx";
+import { IconBookmark, IconBulb, IconClose, IconPlay } from "./Icons.tsx";
 
 const GENDER: Record<string, string> = { m: "مذكر", f: "مؤنث", both: "مذكر ومؤنث" };
 
@@ -199,7 +199,11 @@ export function WordSheet({ word, sentence, onClose }: { word: string; sentence:
                 </Block>
               )}
 
-              {info.memory_tip_ar && <div className="tip">💡 {info.memory_tip_ar}</div>}
+              {info.memory_tip_ar && (
+                <div className="tip">
+                  <IconBulb size={18} /> {info.memory_tip_ar}
+                </div>
+              )}
             </>
           )}
         </div>

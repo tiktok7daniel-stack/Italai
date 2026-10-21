@@ -1,10 +1,28 @@
 import type { SayIt } from "../lib/api.ts";
 import { addItem, hasItem, useNotebook } from "../lib/notebook.ts";
 import { speak } from "../lib/tts.ts";
-import { IconBookmark, IconBulb, IconExpand, IconPlay, IconSlow, IconWarn } from "./Icons.tsx";
+import {
+  IconBolt,
+  IconBookmark,
+  IconBow,
+  IconBulb,
+  IconExpand,
+  IconHand,
+  IconHeart,
+  IconPlay,
+  IconSlow,
+  IconUsers,
+  IconWarn,
+} from "./Icons.tsx";
 import { ItalianText } from "./ItalianText.tsx";
 
-const REGISTER_ICON: Record<string, string> = { casual: "😎", polite: "🤝", short: "⚡", warm: "🤗", firm: "✋" };
+const REGISTER_ICON: Record<string, React.ReactNode> = {
+  casual: <IconUsers size={14} />,
+  polite: <IconBow size={14} />,
+  short: <IconBolt size={14} />,
+  warm: <IconHeart size={14} />,
+  firm: <IconHand size={14} />,
+};
 
 type WordHandler = (word: string, sentence: string) => void;
 
@@ -81,7 +99,8 @@ export function SayResult({ r, onWord, onShow, compact = false }: { r: SayIt; on
               {r.alternatives.map((a) => (
                 <div className="alt" key={a.it}>
                   <div className="alt-label">
-                    {REGISTER_ICON[a.register]} {a.label_ar}
+                    <span className="alt-icon">{REGISTER_ICON[a.register]}</span>
+                    {a.label_ar}
                   </div>
                   <div className="alt-row">
                     <ItalianText text={a.it} onWord={onWord} className="alt-it" />
