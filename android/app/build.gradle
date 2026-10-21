@@ -12,6 +12,10 @@ android {
         versionCode((System.getenv("DILLO_VERSION_CODE") ?: "1") as int)
         versionName "1.0." + (System.getenv("DILLO_VERSION_CODE") ?: "0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Phones only: skipping emulator (x86) native libraries halves the APK size.
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a"
+        }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
