@@ -59,7 +59,8 @@ jobs:
 
       - name: Summarize build errors
         if: failure()
-        run: grep -E "^e: |error:|What went wrong" -A4 "$RUNNER_TEMP/gradle.log" | head -80 || true
+        run: |
+          grep -E "^e: |error:|What went wrong" -A4 "$RUNNER_TEMP/gradle.log" | head -80 || true
 
       - uses: actions/upload-artifact@v4
         with:
