@@ -1,0 +1,50 @@
+// Small stroke icon set (24px grid), drawn to match the glass UI.
+type P = { size?: number };
+
+const svg = (size: number, children: React.ReactNode, fill = false) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={fill ? "currentColor" : "none"}
+    stroke={fill ? "none" : "currentColor"}
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    {children}
+  </svg>
+);
+
+export const IconMic = ({ size = 24 }: P) =>
+  svg(size, <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></>);
+export const IconStop = ({ size = 24 }: P) => svg(size, <rect x="6" y="6" width="12" height="12" rx="3" />, true);
+export const IconPlay = ({ size = 24 }: P) =>
+  svg(size, <><path d="M11 5 6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></>);
+export const IconSlow = ({ size = 24 }: P) =>
+  svg(size, <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M10 2h4" /></>);
+export const IconExpand = ({ size = 24 }: P) =>
+  svg(size, <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />);
+export const IconBookmark = ({ size = 24, filled = false }: P & { filled?: boolean }) =>
+  svg(size, <path d="M6 3h12v18l-6-4-6 4z" />, filled);
+export const IconSend = ({ size = 24 }: P) => svg(size, <path d="M20 12 4 4l3 8-3 8zM7 12h13" />);
+export const IconChat = ({ size = 24 }: P) =>
+  svg(size, <path d="M4 5h16v11H9l-5 4z" />);
+export const IconEar = ({ size = 24 }: P) =>
+  svg(size, <><path d="M7 9a5 5 0 0 1 10 0c0 3-3 4-3 7a3 3 0 0 1-6 0" /><path d="M10 9a2 2 0 0 1 4 0" /></>);
+export const IconBook = ({ size = 24 }: P) =>
+  svg(size, <><path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z" /><path d="M20 4h-4a3 3 0 0 0-3 3" /><path d="M20 4v14h-5" /></>);
+export const IconSpark = ({ size = 24 }: P) =>
+  svg(size, <path d="M12 2c.6 5 2.4 7.4 8 8-5.6.6-7.4 3-8 10-.6-7-2.4-9.4-8-10 5.6-.6 7.4-3 8-8z" />, true);
+export const IconClose = ({ size = 24 }: P) => svg(size, <path d="M6 6l12 12M18 6 6 18" />);
+export const IconTrash = ({ size = 24 }: P) =>
+  svg(size, <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />);
+export const IconX = IconClose;
+export const IconCheck = ({ size = 24 }: P) => svg(size, <path d="m5 12 5 5 9-10" />);
+export const IconKeyboard = ({ size = 24 }: P) =>
+  svg(size, <><rect x="2" y="6" width="20" height="12" rx="3" /><path d="M6 10h0M10 10h0M14 10h0M18 10h0M7 14h10" /></>);
+export const IconWarn = ({ size = 24 }: P) =>
+  svg(size, <><path d="M12 3 2 20h20z" /><path d="M12 10v4M12 17h0" /></>);
+export const IconBulb = ({ size = 24 }: P) =>
+  svg(size, <><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" /></>);

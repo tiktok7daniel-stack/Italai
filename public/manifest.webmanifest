@@ -1,0 +1,16 @@
+{
+  "name": "Dillo — قولها زي الطلاينة",
+  "short_name": "Dillo",
+  "description": "قولها بالمصري، واسمعها زي ما الطلاينة بيقولوها.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07070a",
+  "theme_color": "#07070a",
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
