@@ -16,7 +16,9 @@
   --ar: "IBM Plex Sans Arabic", system-ui, sans-serif;
   --it: "Inter", system-ui, sans-serif;
   --display: "Fraunces", Georgia, serif;
-  --safe-b: env(safe-area-inset-bottom, 0px);
+  /* Capacitor's SystemBars injects --safe-area-inset-* on Android; browsers use env(). */
+  --safe-t: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-b: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   color-scheme: dark;
 }
 
@@ -150,8 +152,11 @@ main {
   padding-bottom: calc(120px + var(--safe-b));
 }
 .top {
-  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  padding-top: calc(14px + var(--safe-t));
   padding-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .brand {
   display: flex;
@@ -1238,6 +1243,95 @@ main {
   to {
     background-position: -200% 0;
   }
+}
+
+/* ---------- Settings ---------- */
+.setup-banner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: calc(100% - 32px);
+  max-width: 608px;
+  margin: 10px auto 0;
+  padding: 14px 18px;
+  border-radius: 20px;
+  border-color: rgba(255, 106, 43, 0.5);
+  text-align: start;
+}
+.setup-banner span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.sheet-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.key-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.3);
+  outline: none;
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+}
+.key-row input:focus {
+  border-color: rgba(255, 106, 43, 0.5);
+}
+.block .btn.wide + * {
+  margin-top: 8px;
+}
+.howto {
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+.howto summary {
+  cursor: pointer;
+  color: var(--accent-2);
+}
+.howto ol {
+  margin: 8px 0 0;
+  padding-inline-start: 20px;
+  color: var(--muted);
+}
+.howto a {
+  color: var(--text);
+}
+.model-list {
+  display: grid;
+  gap: 8px;
+}
+.model {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+}
+.model.active {
+  border-color: rgba(255, 106, 43, 0.6);
+  background: rgba(255, 106, 43, 0.12);
+}
+.rate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rate-row input {
+  flex: 1;
+  accent-color: var(--accent);
 }
 
 /* ---------- Show mode ---------- */

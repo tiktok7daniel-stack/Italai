@@ -1,4 +1,6 @@
+import { Capacitor } from "@capacitor/core";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNativeRecognizer } from "./speech-native.ts";
 
 // Minimal typing for the Web Speech API (Chrome/Edge/Safari expose it, Firefox doesn't).
 interface RecognitionResult {
@@ -27,7 +29,10 @@ function createRecognition(): Recognition | null {
   return Ctor ? new Ctor() : null;
 }
 
-export const speechSupported = typeof window !== "undefined" && createRecognition() !== null;
+const native = Capacitor.isNativePlatform();
+
+// On Android the WebView has no Web Speech API, so the app uses the system recognizer instead.
+export const speechSupported = native || (typeof window !== "undefined" && createRecognition() !== null);
 
 export type Lang = "ar-EG" | "it-IT";
 
@@ -36,7 +41,7 @@ export type Lang = "ar-EG" | "it-IT";
  * - `once` mode: start()/stop() a single utterance (hold-to-talk); onFinal fires once with the whole text on stop.
  * - `stream` mode: keeps listening (restarts after silence) and fires onFinal for every finished sentence.
  */
-export function useRecognizer(lang: Lang, mode: "once" | "stream", onFinal: (text: string) => void) {
+function useWebRecognizer(lang: Lang, mode: "once" | "stream", onFinal: (text: string) => void) {
   const [active, setActive] = useState(false);
   const [interim, setInterim] = useState("");
   const [error, setError] = useState("");
@@ -136,3 +141,5 @@ export function useRecognizer(lang: Lang, mode: "once" | "stream", onFinal: (tex
 
   return { active, interim, error, start, stop };
 }
+
+export const useRecognizer = native ? useNativeRecognizer : useWebRecognizer;

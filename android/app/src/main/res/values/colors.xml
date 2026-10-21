@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#07070a</color>
+    <color name="colorPrimaryDark">#07070a</color>
+    <color name="colorAccent">#FF6A2B</color>
+    <color name="dilloBackground">#07070a</color>
+</resources>

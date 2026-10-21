@@ -1,3 +1,6 @@
+import { TextToSpeech } from "@capacitor-community/text-to-speech";
+import { getSettings, isNative } from "./settings.ts";
+
 let voice: SpeechSynthesisVoice | null = null;
 
 function pickVoice() {
@@ -7,14 +10,20 @@ function pickVoice() {
     voices.find((v) => /natural|neural|premium|enhanced|google/i.test(v.name)) ?? voices[0] ?? null;
 }
 
-if (typeof speechSynthesis !== "undefined") {
+if (!isNative && typeof speechSynthesis !== "undefined") {
   pickVoice();
   speechSynthesis.addEventListener?.("voiceschanged", pickVoice);
 }
 
 /** Speaks Italian; resolves when finished (or immediately if TTS is unavailable). */
 export function speak(text: string, rate = 1): Promise<void> {
-  if (typeof speechSynthesis === "undefined" || !text) return Promise.resolve();
+  if (!text) return Promise.resolve();
+  rate *= getSettings().rate;
+  if (isNative) {
+    // Android's WebView has no reliable speechSynthesis; use the system TTS engine.
+    return TextToSpeech.speak({ text, lang: "it-IT", rate }).catch(() => {});
+  }
+  if (typeof speechSynthesis === "undefined") return Promise.resolve();
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "it-IT";

@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
-import { IconBook, IconChat, IconSpark } from "./components/Icons.tsx";
+import { IconBook, IconChat, IconGear, IconSpark } from "./components/Icons.tsx";
 import { LiveTab } from "./components/LiveTab.tsx";
 import { NotebookTab } from "./components/NotebookTab.tsx";
 import { SayTab } from "./components/SayTab.tsx";
+import { SettingsSheet } from "./components/SettingsSheet.tsx";
 import { ShowMode } from "./components/ShowMode.tsx";
 import { WordSheet } from "./components/WordSheet.tsx";
 import { dueItems, useNotebook } from "./lib/notebook.ts";
+import { needsKey, useSettings } from "./lib/settings.ts";
 
 type Tab = "say" | "live" | "book";
 
@@ -13,11 +15,15 @@ export function App() {
   const [tab, setTab] = useState<Tab>("say");
   const [word, setWord] = useState<{ word: string; sentence: string } | null>(null);
   const [show, setShow] = useState("");
+  const missingKey = needsKey(useSettings());
+  // First launch of the app: go straight to setting the key.
+  const [settingsOpen, setSettingsOpen] = useState(missingKey);
   const due = dueItems(useNotebook()).length;
 
   const onWord = useCallback((w: string, sentence: string) => setWord({ word: w, sentence }), []);
   const closeWord = useCallback(() => setWord(null), []);
   const closeShow = useCallback(() => setShow(""), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
   return (
     <div className="app">
@@ -35,7 +41,16 @@ export function App() {
             <small>قولها زي الطلاينة</small>
           </div>
         </div>
+        <button className="icon-btn" onClick={() => setSettingsOpen(true)} aria-label="الإعدادات">
+          <IconGear size={20} />
+        </button>
       </header>
+      {missingKey && (
+        <button className="setup-banner glass" onClick={() => setSettingsOpen(true)}>
+          <b>خطوة واحدة وتبدأ</b>
+          <span>حط مفتاح Claude API عشان التطبيق يشتغل ←</span>
+        </button>
+      )}
 
       <main>
         {/* Tabs stay mounted so a running conversation isn't lost when you peek at the notebook. */}
@@ -58,6 +73,7 @@ export function App() {
 
       {word && <WordSheet word={word.word} sentence={word.sentence} onClose={closeWord} />}
       {show && <ShowMode text={show} onClose={closeShow} />}
+      {settingsOpen && <SettingsSheet onClose={closeSettings} />}
     </div>
   );
 }

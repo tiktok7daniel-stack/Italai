@@ -56,8 +56,8 @@ export function LiveTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: 
       listener.start();
     }
   }
-  function onMyMic(active: boolean) {
-    if (active && listener.active) {
+  function onMyMic() {
+    if (listener.active) {
       resume.current = true;
       listener.stop();
     }
@@ -171,7 +171,7 @@ export function LiveTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: 
               size="md"
               onText={onMine}
               onInterim={setMyInterim}
-              onActiveChange={onMyMic}
+              onPress={onMyMic}
             />
             <div className="my-turn-text">
               <b>دورك</b>

@@ -1,0 +1,80 @@
+name: Android APK
+
+on:
+  push:
+    branches: [ccr-665fc7d0-h7wvqd, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      # Optional private signing key. Without it the committed debug key is used.
+      KEYSTORE_B64: ${{ secrets.DILLO_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build web app
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+
+      - name: Use private signing key
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/dillo.keystore"
+          echo "DILLO_KEYSTORE_FILE=$RUNNER_TEMP/dillo.keystore" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        working-directory: android
+        env:
+          DILLO_VERSION_CODE: ${{ github.run_number }}
+          DILLO_KEYSTORE_PASSWORD: ${{ secrets.DILLO_KEYSTORE_PASSWORD }}
+          DILLO_KEY_ALIAS: ${{ secrets.DILLO_KEY_ALIAS }}
+          DILLO_KEY_PASSWORD: ${{ secrets.DILLO_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Dillo.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dillo-apk
+          path: Dillo.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sed 's/^ *//' > notes.md <<'NOTES'
+          ## نزّل التطبيق
+          1. من الموبايل نزّل **Dillo.apk** من تحت.
+          2. افتحه، ولو طلب «السماح بالتثبيت من مصادر غير معروفة» اسمح له.
+          3. أول ما يفتح هيطلب منك مفتاح Claude API من الإعدادات ⚙️.
+
+          النسخة الجديدة بتتثبت فوق القديمة عادي من غير ما بياناتك تضيع.
+          NOTES
+          gh release create "v1.0.${{ github.run_number }}" Dillo.apk \
+            --target "${{ github.sha }}" \
+            --title "Dillo 1.0.${{ github.run_number }}" \
+            --notes-file notes.md \
+            --latest

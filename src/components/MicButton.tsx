@@ -18,14 +18,15 @@ export function MicButton({
   size = "lg",
   hint,
   onInterim,
-  onActiveChange,
+  onPress,
 }: {
   lang: Lang;
   onText: (text: string) => void;
   size?: "lg" | "md";
   hint?: string;
   onInterim?: (text: string) => void;
-  onActiveChange?: (active: boolean) => void;
+  /** Called right before listening starts (e.g. to pause another recognizer). */
+  onPress?: () => void;
 }) {
   const { active, interim, error, start, stop } = useRecognizer(lang, "once", onText);
   const pressedAt = useRef(0);
@@ -33,9 +34,6 @@ export function MicButton({
   const onInterimRef = useRef(onInterim);
   onInterimRef.current = onInterim;
   useEffect(() => onInterimRef.current?.(interim), [interim]);
-  const onActiveRef = useRef(onActiveChange);
-  onActiveRef.current = onActiveChange;
-  useEffect(() => onActiveRef.current?.(active), [active]);
 
   return (
     <div className={`mic-wrap ${size}`}>
@@ -46,7 +44,10 @@ export function MicButton({
           e.currentTarget.setPointerCapture(e.pointerId);
           wasActive.current = active;
           pressedAt.current = Date.now();
-          if (!active) start();
+          if (!active) {
+            onPress?.();
+            start();
+          }
         }}
         onPointerUp={() => {
           const held = Date.now() - pressedAt.current > HOLD_MS;
