@@ -9,15 +9,17 @@ import {
 } from "../../shared/dillo.ts";
 import type { Heard, SayIt, WordInfo } from "../../shared/schemas.ts";
 import { analyzeVerb } from "./italian/analyze.ts";
-import { conjugate } from "./italian/conjugate.ts";
+import { conjugate } from "./italian/inflect.ts";
 import { pronounce } from "./italian/pronounce.ts";
-import { searchPhrases } from "./knowledge/search.ts";
+import { googleTranslate, type Dir } from "./google.ts";
+import { addHistory, sentencesWith } from "./history.ts";
+import { searchPhrases, type Phrase } from "./knowledge/search.ts";
 import { modelById, modelStatus } from "./local/brain.ts";
 import { heardLocal, phraseAsResult, sayLocal, wordLocal, type Progress } from "./local/engine.ts";
 import { getSettings, isNative } from "./settings.ts";
 import { load, save } from "./storage.ts";
 
-export type { Heard, Progress, Register, SayIt, WordInfo };
+export type { Dir, Heard, Progress, Register, SayIt, WordInfo };
 
 const ERRORS: Record<string, string> = {
   no_key: "لازم تحط مفتاح Claude API الأول من الإعدادات.",
@@ -84,6 +86,24 @@ function viaClaude<T>(path: string, body: object, run: (c: Anthropic, model: str
 }
 
 const useLocal = () => isNative && getSettings().engine === "local";
+const useGoogle = () => isNative && getSettings().engine === "google";
+
+export interface Translation {
+  dir: Dir;
+  source: string;
+  understood: string; // the source as the translator read it (Egyptian words in standard Arabic)
+  target: string;
+  phrase: { phrase: Phrase; exact: boolean } | null; // how Italians say it, from the phrasebook
+}
+
+/** Google Translate on the phone, plus the phrasebook's native wording when one matches. */
+export async function translate(text: string, dir: Dir, origin: "translate" | "conversation" = "translate"): Promise<Translation> {
+  const r = await googleTranslate(text, dir);
+  const best = dir === "ar-it" ? searchPhrases(text, 1)[0] : undefined;
+  const phrase = best && best.score >= 0.6 ? { phrase: best.phrase, exact: best.score >= 0.97 } : null;
+  addHistory({ dir, ar: dir === "ar-it" ? text : r.text, it: dir === "ar-it" ? r.text : text, source: origin });
+  return { dir, source: text, understood: r.understood, target: r.text, phrase };
+}
 
 async function viaLocal<T>(run: () => Promise<T>): Promise<T> {
   const model = modelById(getSettings().localModel);
@@ -97,7 +117,20 @@ async function viaLocal<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-export function sayIt(
+export async function sayIt(
+  text: string,
+  register: Register,
+  situation: string,
+  context: string[],
+  onProgress?: (p: Progress) => void,
+  origin: "translate" | "conversation" = "translate",
+): Promise<SayIt> {
+  const result = await sayItRaw(text, register, situation, context, onProgress);
+  addHistory({ dir: "ar-it", ar: text, it: result.natural.it, source: origin });
+  return result;
+}
+
+async function sayItRaw(
   text: string,
   register: Register,
   situation: string,
@@ -106,17 +139,42 @@ export function sayIt(
 ): Promise<SayIt> {
   // Exactly a phrasebook sentence: answer instantly, offline, with the curated native wording.
   const best = searchPhrases(text, 1)[0];
-  if (best && best.score >= 0.97 && register === "auto") return Promise.resolve(phraseAsResult(best, text));
+  if (best && best.score >= 0.97 && register === "auto") return phraseAsResult(best, text);
 
+  if (useGoogle()) {
+    const r = await googleTranslate(text, "ar-it");
+    const native = best && best.score >= 0.6 ? best.phrase.it.split(" / ")[0] : "";
+    return {
+      understood_ar: text,
+      natural: { it: r.text, pron_ar: pronounce(r.text), vibe_ar: "ترجمة جوجل" },
+      alternatives:
+        native && native !== r.text
+          ? [{ register: "casual", label_ar: "الطلاينة غالباً بيقولوها كده", it: native, pron_ar: pronounce(native) }]
+          : [],
+      literal_trap: { it: "", why_ar: "" },
+      chunks: [],
+      grammar: [],
+      culture_tip_ar: native ? best!.phrase.note : "",
+    };
+  }
   if (useLocal()) return viaLocal(() => sayLocal(text, register, situation, context, onProgress));
   const input = { text, register, situation, context };
   return viaClaude<SayIt>("/api/say", input, (c, m) => ask(c, m, sayRequest(input)));
 }
 
-export function heard(text: string, context: string[], onProgress?: (p: Progress) => void) {
-  if (useLocal()) return viaLocal(() => heardLocal(text, context, onProgress));
-  const input = { text, context };
-  return viaClaude<Heard>("/api/heard", input, (c, m) => ask(c, m, heardRequest(input)));
+export async function heard(text: string, context: string[], onProgress?: (p: Progress) => void): Promise<Heard> {
+  let result: Heard;
+  if (useGoogle()) {
+    const r = await googleTranslate(text, "it-ar");
+    result = { it_clean: text, ar: r.text, idioms: [], reply_ideas: [] };
+  } else if (useLocal()) {
+    result = await viaLocal(() => heardLocal(text, context, onProgress));
+  } else {
+    const input = { text, context };
+    result = await viaClaude<Heard>("/api/heard", input, (c, m) => ask(c, m, heardRequest(input)));
+  }
+  addHistory({ dir: "it-ar", ar: result.ar, it: result.it_clean || text, source: "conversation" });
+  return result;
 }
 
 /** Quick check used by the settings screen. */
@@ -161,7 +219,8 @@ function withVerbRules(info: WordInfo | null, word: string): WordInfo | null {
   const rule = hit
     ? `من الفعل ${conj.infinitive} · ${TENSE_AR[hit.tense] ?? hit.tense}` +
       (NO_PERSON.has(hit.tense) ? "" : ` · ${hit.person}`) +
-      (hit.clitic ? ` · ومعاه الضمير «${hit.clitic}»` : "")
+      (hit.clitic ? ` · ومعاه الضمير «${hit.clitic}»` : "") +
+      (hit.guessed ? " · (عرفته من آخر الكلمة)" : "")
     : "";
   const base: WordInfo = info ?? {
     word,
@@ -211,6 +270,7 @@ export async function lookupWord(word: string, sentence: string, onProgress?: (p
   let info: WordInfo | null = null;
   let failure: Error | null = null;
   try {
+    if (useGoogle()) return await wordGoogle(word, sentence);
     info = useLocal()
       ? await viaLocal(() => wordLocal(word, sentence, onProgress))
       : await viaClaude<WordInfo>("/api/word", input, (c, m) => ask(c, m, wordRequest(input)));
@@ -229,4 +289,44 @@ export async function lookupWord(word: string, sentence: string, onProgress?: (p
     merged.memory_tip_ar = failure.message;
   }
   return merged;
+}
+
+/**
+ * Word lookup without AI: verb facts and tables from the rule engines, meanings from Google
+ * Translate (the word and its dictionary form), examples from sentences already in the history.
+ */
+async function wordGoogle(word: string, sentence: string): Promise<WordInfo> {
+  const base = withVerbRules(null, word) ?? {
+    word,
+    lemma: word,
+    pos: "other" as const,
+    pos_ar: "كلمة",
+    meanings_ar: [],
+    meaning_here_ar: "",
+    pron_ar: pronounce(word),
+    ipa: "",
+    how_formed_ar: "",
+    noun_info: { gender: "" as const, singular: "", plural: "", feminine: "" },
+    verb: { infinitive: "", auxiliary: "" as const, past_participle: "", gerund: "", group_ar: "", tense_here: "", person_here: "" as const, tenses: [] },
+    origin_ar: "",
+    family: [],
+    examples: [],
+    memory_tip_ar: "",
+  };
+  const lemma = base.lemma.toLowerCase() !== word.toLowerCase() ? base.lemma : "";
+  const [wordAr, lemmaAr] = await Promise.all([
+    googleTranslate(word, "it-ar").then((r) => r.text).catch(() => ""),
+    lemma ? googleTranslate(lemma, "it-ar").then((r) => r.text).catch(() => "") : Promise.resolve(""),
+  ]);
+  const meanings = [...new Set([wordAr, lemmaAr].map((m) => m.trim()).filter(Boolean))];
+  const examples = sentencesWith(word)
+    .filter((h) => h.it !== sentence)
+    .map((h) => ({ it: h.it, ar: h.ar }));
+  return {
+    ...base,
+    meaning_here_ar: wordAr,
+    meanings_ar: meanings.length > 1 ? meanings : [],
+    examples,
+    memory_tip_ar: lemma && lemmaAr ? `المصدر ${lemma} معناه «${lemmaAr}»` : "",
+  };
 }

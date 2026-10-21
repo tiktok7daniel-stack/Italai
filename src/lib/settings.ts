@@ -3,28 +3,31 @@ import { useSyncExternalStore } from "react";
 import { DEFAULT_MODEL } from "../../shared/dillo.ts";
 import { load, save } from "./storage.ts";
 
-export type Engine = "local" | "claude";
+export type Engine = "google" | "local" | "claude";
 
 export interface Settings {
-  engine: Engine; // on-device model (default on the phone) or Claude
+  engine: Engine; // Google Translate on the phone (default), on-device Gemma, or Claude
   localModel: "e2b" | "e4b";
   apiKey: string; // stays on this device only
   model: string;
   rate: number; // speech speed for the Italian voice
 }
 
-const KEY = "dillo.settings.v1";
+const KEY = "dillo.settings.v2";
+const OLD_KEY = "dillo.settings.v1"; // before Google became the default engine
 export const isNative = Capacitor.isNativePlatform();
 
+const { engine: _oldEngine, ...previous } = load<Partial<Settings>>(OLD_KEY, {});
 let settings: Settings = {
-  engine: isNative ? "local" : "claude",
+  engine: isNative ? "google" : "claude",
   localModel: "e2b",
   apiKey: "",
   model: DEFAULT_MODEL,
   rate: 1,
+  ...previous,
   ...load<Partial<Settings>>(KEY, {}),
 };
-// The on-device model only exists in the Android app.
+// Google and the on-device model only exist in the Android app.
 if (!isNative) settings.engine = "claude";
 const listeners = new Set<() => void>();
 

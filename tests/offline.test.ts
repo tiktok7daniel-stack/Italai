@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { conjugate } from "../src/lib/italian/conjugate.ts";
+import { readFileSync } from "node:fs";
+import { conjugateRules as conjugate } from "../src/lib/italian/conjugate.ts";
+import { conjugate as inflect, initInflectSync } from "../src/lib/italian/inflect.ts";
+
+initInflectSync(readFileSync(new URL("../node_modules/@v4nn4/ablaut/ablaut_bg.wasm", import.meta.url)));
 
 // [verb, tense, person index, expected]
 const CASES: [string, string, number, string][] = [
@@ -152,7 +156,7 @@ test("pronounce", () => {
   assert.equal(pronounce("acqua"), "أكّوا");
 });
 
-import { glossary, searchPhrases } from "../src/lib/knowledge/search.ts";
+import { glossary, searchPhrases, standardize } from "../src/lib/knowledge/search.ts";
 
 test("phrasebook finds the native wording", () => {
   assert.equal(searchPhrases("بكام ده")[0].phrase.it, "Quanto costa?");
@@ -163,4 +167,54 @@ test("phrasebook finds the native wording", () => {
 test("Egyptian glossary handles prefixes", () => {
   const words = glossary("قول لصاحبي اني مش هقدر اجي النهارده").map((g) => g.word);
   for (const w of ["لصاحبي", "هقدر", "النهارده"]) assert.ok(words.includes(w), w);
+});
+
+// The ablaut engine and the rule engine must agree on the common tenses.
+const SHARED = ["presente", "imperfetto", "futuro semplice", "condizionale presente", "congiuntivo presente"];
+for (const verb of ["parlare", "mangiare", "cercare", "andare", "fare", "dire", "venire", "capire", "dormire", "prendere", "essere", "avere", "volere", "uscire", "bere", "tradurre", "proporre", "scegliere"]) {
+  test(`ablaut agrees with rules: ${verb}`, () => {
+    const a = inflect(verb)!;
+    const r = conjugate(verb)!;
+    for (const name of SHARED) {
+      const fa = a.tenses.find((t) => t.name_it === name)!.forms.map((f) => f.form);
+      const fr = r.tenses.find((t) => t.name_it === name)!.forms.map((f) => f.form);
+      assert.deepEqual(fa, fr, `${verb} ${name}`);
+    }
+    assert.equal(a.past_participle, r.past_participle);
+    assert.equal(a.auxiliary, r.auxiliary);
+  });
+}
+
+test("ablaut tables: reflexive and advanced tenses", () => {
+  const c = inflect("lavarsi")!;
+  const get = (t: string, i: number) => c.tenses.find((x) => x.name_it === t)!.forms[i].form;
+  assert.equal(get("presente", 0), "mi lavo");
+  assert.equal(get("passato prossimo", 0), "mi sono lavato/a");
+  assert.equal(get("passato prossimo", 3), "ci siamo lavati/e");
+  assert.equal(get("imperativo", 1), "lavati");
+  assert.equal(get("imperativo", 4), "lavatevi");
+  const s = inflect("sapere")!;
+  assert.equal(s.tenses.find((x) => x.name_it === "congiuntivo imperfetto")!.forms[0].form, "sapessi");
+  assert.equal(s.tenses.find((x) => x.name_it === "passato remoto")!.forms[2].form, "seppe");
+  assert.equal(inflect("andare")!.tenses.find((x) => x.name_it === "passato prossimo")!.forms[0].form, "sono andato/a");
+});
+
+test("recognises verbs outside the list by ending", () => {
+  const h = analyzeVerb("sbadigliavamo");
+  assert.ok(h.some((x) => x.lemma === "sbadigliare" && x.tense === "imperfetto" && x.person === "noi"), JSON.stringify(h));
+  assert.deepEqual(analyzeVerb("patate"), []);
+  assert.deepEqual(analyzeVerb("casa"), []);
+});
+
+test("bare participle is reported as a participle", () => {
+  const h = analyzeVerb("sbattuto");
+  assert.equal(h[0].lemma, "sbattere");
+  assert.equal(h[0].tense, "participio passato");
+});
+
+test("Egyptian to standard Arabic for the translator", () => {
+  assert.equal(standardize("فين الحمام لو سمحت"), "أين الحمام من فضلك");
+  assert.equal(standardize("انا جعان اوي"), "أنا جائع جداً");
+  assert.equal(standardize("هو بيشتغل فين"), "هو بيشتغل أين");
+  assert.ok(standardize("مش عايز الاكل").startsWith("لا أريد الطعام"));
 });

@@ -1,4 +1,5 @@
-// Rule-based Italian verb conjugation (no AI, works offline).
+// Rule-based Italian verb conjugation (no AI, works offline). Used as the fallback for
+// inflect.ts (which prefers the ablaut engine) and for reflexive forms.
 // Covers regular -are/-ere/-ire verbs (incl. -isc-), spelling rules (-care, -gare, -iare, -ciare,
 // -giare), reflexive verbs, irregular participles and the common irregular verbs with their compounds.
 
@@ -206,7 +207,7 @@ export function parseInfinitive(raw: string): { inf: string; reflexive: boolean 
   return null;
 }
 
-export function conjugate(raw: string): Conjugation | null {
+export function conjugateRules(raw: string): Conjugation | null {
   const parsed = parseInfinitive(raw);
   if (!parsed) return null;
   const { inf, reflexive } = parsed;

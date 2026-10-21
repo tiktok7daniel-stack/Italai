@@ -2,6 +2,7 @@ import { useState } from "react";
 import { dueItems, grade, removeItem, useNotebook, type NoteItem } from "../lib/notebook.ts";
 import { speak } from "../lib/tts.ts";
 import { Emblem } from "./Emblem.tsx";
+import { HistoryList } from "./HistoryList.tsx";
 import { IconBook, IconCheck, IconPlay, IconTrash, IconX } from "./Icons.tsx";
 import { ItalianText } from "./ItalianText.tsx";
 
@@ -11,6 +12,7 @@ export function NotebookTab({ onWord }: { onWord: WordHandler }) {
   const items = useNotebook();
   const [filter, setFilter] = useState<"all" | "phrase" | "word">("all");
   const [reviewing, setReviewing] = useState(false);
+  const [view, setView] = useState<"history" | "saved">("history");
   const due = dueItems(items);
   const shown = items.filter((i) => filter === "all" || i.kind === filter);
 
@@ -21,9 +23,26 @@ export function NotebookTab({ onWord }: { onWord: WordHandler }) {
       <section className="intro">
         <h1>
           كشكولي
-          <span className="intro-sub">كل جملة وكلمة حفظتها. راجعها كل يوم شوية لحد ما تطلع منك لوحدها.</span>
+          <span className="intro-sub">كل اللي قلته محفوظ هنا. واللي تعلّم عليه بتراجعه كل يوم لحد ما يطلع منك لوحده.</span>
         </h1>
       </section>
+
+      <div className="seg glass">
+        <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>
+          كل اللي قلته
+        </button>
+        <button className={view === "saved" ? "active" : ""} onClick={() => setView("saved")}>
+          للمراجعة {due.length > 0 && <em className="seg-badge">{due.length}</em>}
+        </button>
+      </div>
+
+      {view === "history" ? <HistoryList onWord={onWord} /> : renderSaved()}
+    </div>
+  );
+
+  function renderSaved() {
+    return (
+      <>
 
       <div className="stats">
         <div className="stat glass">
@@ -91,8 +110,9 @@ export function NotebookTab({ onWord }: { onWord: WordHandler }) {
           </div>
         ))}
       </div>
-    </div>
-  );
+      </>
+    );
+  }
 }
 
 /** Flashcards: see the Arabic, say the Italian out loud, flip, be honest. */

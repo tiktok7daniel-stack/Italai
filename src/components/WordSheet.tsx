@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { lookupWord, type Progress, type WordInfo } from "../lib/api.ts";
+import { getSettings } from "../lib/settings.ts";
 import { addItem, hasItem, useNotebook } from "../lib/notebook.ts";
 import { speak } from "../lib/tts.ts";
 import { IconBookmark, IconBulb, IconClose, IconPlay } from "./Icons.tsx";
@@ -188,7 +189,7 @@ export function WordSheet({ word, sentence, onClose }: { word: string; sentence:
               )}
 
               {info.examples.length > 0 && (
-                <Block title="أمثلة من الحياة">
+                <Block title={getSettings().engine === "google" ? "جمل قلتها قبل كده فيها الكلمة دي" : "أمثلة من الحياة"}>
                   {info.examples.map((ex) => (
                     <button className="example" key={ex.it} onClick={() => speak(ex.it)}>
                       <span className="it" dir="ltr">{ex.it}</span>

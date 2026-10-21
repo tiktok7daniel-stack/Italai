@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { testKey } from "../lib/api.ts";
+import { downloadPack, useLanguagePacks } from "../lib/google.ts";
 import {
   cancelDownload,
   deviceInfo,
@@ -48,23 +49,29 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         <div className="sheet-body">
           {isNative && (
             <section className="block">
-              <h4>المخ اللي بيترجم</h4>
+              <h4>الترجمة بتشتغل بـ</h4>
               <div className="seg glass">
+                <button className={settings.engine === "google" ? "active" : ""} onClick={() => updateSettings({ engine: "google" })}>
+                  جوجل
+                </button>
                 <button className={settings.engine === "local" ? "active" : ""} onClick={() => updateSettings({ engine: "local" })}>
-                  على الموبايل · من غير نت
+                  Gemma
                 </button>
                 <button className={settings.engine === "claude" ? "active" : ""} onClick={() => updateSettings({ engine: "claude" })}>
-                  Claude · أدق
+                  Claude
                 </button>
               </div>
               <p className="muted small">
-                {settings.engine === "local"
-                  ? "ذكاء اصطناعي شغال جوه موبايلك: ببلاش، من غير نت، ومن غير مفتاح. أبطأ شوية وأقل دقة من Claude."
-                  : "أدق في طريقة الطلاينة والشرح، بس محتاج نت ومفتاح Claude API."}
+                {settings.engine === "google"
+                  ? "ترجمة جوجل على موبايلك: ببلاش، سريعة، ومن غير نت بعد أول تنزيل. التصريف والشرح من الداتابيز اللي جوه التطبيق."
+                  : settings.engine === "local"
+                    ? "ذكاء اصطناعي جوه موبايلك بيقولك الطلاينة بيقولوها إزاي ويشرح. ببلاش ومن غير نت، بس أبطأ."
+                    : "أدق حاجة في طريقة الطلاينة والشرح، بس محتاج نت ومفتاح Claude API."}
               </p>
             </section>
           )}
 
+          {isNative && settings.engine === "google" && <GooglePacks />}
           {isNative && settings.engine === "local" && <LocalModels />}
           {(!isNative || settings.engine === "claude") && <ClaudeSettings />}
 
@@ -329,5 +336,54 @@ function ClaudeSettings() {
         </div>
       </section>
     </>
+  );
+}
+
+function GooglePacks() {
+  const packs = useLanguagePacks();
+  const [busy, setBusy] = useState<"" | "ar" | "it">("");
+  const [error, setError] = useState("");
+
+  async function get(lang: "ar" | "it") {
+    setBusy(lang);
+    setError("");
+    try {
+      await downloadPack(lang);
+    } catch {
+      setError("التنزيل محتاج واي فاي. اتأكد إنك متوصل وجرب تاني.");
+    }
+    setBusy("");
+    packs.refresh();
+  }
+
+  const row = (lang: "ar" | "it", label: string, ready: boolean) => (
+    <div className="pack" key={lang}>
+      <span>{label}</span>
+      {ready ? (
+        <span className="ok small">
+          <IconCheck size={14} /> جاهز من غير نت
+        </span>
+      ) : (
+        <button className="btn primary small-btn" disabled={busy !== ""} onClick={() => get(lang)}>
+          {busy === lang ? "بينزّل…" : "نزّل (حوالي 30 ميجا)"}
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <section className="block">
+      <h4>ملفات الترجمة</h4>
+      {packs.loaded ? (
+        <>
+          {row("ar", "العربي", packs.ar)}
+          {row("it", "الإيطالي", packs.it)}
+        </>
+      ) : (
+        <p className="muted small">بشوف الملفات…</p>
+      )}
+      {error && <div className="error small">{error}</div>}
+      <p className="muted small">بتتنزّل مرة واحدة على واي فاي، وبعدها الترجمة بتشتغل من غير نت خالص.</p>
+    </section>
   );
 }

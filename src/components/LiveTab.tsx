@@ -69,7 +69,7 @@ export function LiveTab({ onWord, onShow }: { onWord: WordHandler; onShow: (it: 
     const id = nextId++;
     const ctx = context();
     setEntries((l) => [...l, { id, who: "me", text }]);
-    sayIt(text, "auto", "", ctx)
+    sayIt(text, "auto", "", ctx, undefined, "conversation")
       .then((data) => {
         patch(id, { data });
         return speak(data.natural.it);

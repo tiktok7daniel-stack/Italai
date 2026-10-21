@@ -3,10 +3,12 @@ import { IconBook, IconChat, IconGear, IconSpark } from "./components/Icons.tsx"
 import { LiveTab } from "./components/LiveTab.tsx";
 import { NotebookTab } from "./components/NotebookTab.tsx";
 import { SayTab } from "./components/SayTab.tsx";
+import { TranslateTab } from "./components/TranslateTab.tsx";
 import { SettingsSheet } from "./components/SettingsSheet.tsx";
 import { ShowMode } from "./components/ShowMode.tsx";
 import { WordSheet } from "./components/WordSheet.tsx";
 import { dueItems, useNotebook } from "./lib/notebook.ts";
+import { useLanguagePacks } from "./lib/google.ts";
 import { modelById, useModelStatus } from "./lib/local/brain.ts";
 import { isNative, needsKey, useSettings } from "./lib/settings.ts";
 import { load, save } from "./lib/storage.ts";
@@ -21,6 +23,8 @@ export function App() {
   const missingKey = needsKey(settings);
   const local = useModelStatus(modelById(settings.localModel));
   const missingModel = isNative && settings.engine === "local" && local.status !== null && local.status.state !== "ready";
+  const packs = useLanguagePacks();
+  const missingPacks = isNative && settings.engine === "google" && packs.loaded && !(packs.ar && packs.it);
   // First launch of the app: open the settings to set up the model.
   const [settingsOpen, setSettingsOpen] = useState(() => isNative && !load("dillo.onboarded", false));
   const due = dueItems(useNotebook()).length;
@@ -32,7 +36,8 @@ export function App() {
     save("dillo.onboarded", true);
     setSettingsOpen(false);
     local.refresh();
-  }, [local]);
+    packs.refresh();
+  }, [local, packs]);
 
   return (
     <div className="app">
@@ -60,6 +65,12 @@ export function App() {
           <span>حط مفتاح Claude API عشان التطبيق يشتغل ←</span>
         </button>
       )}
+      {missingPacks && (
+        <button className="setup-banner glass" onClick={() => setSettingsOpen(true)}>
+          <b>نزّل ملفات الترجمة</b>
+          <span>مرة واحدة على واي فاي (حوالي 60 ميجا)، وبعدها الترجمة من غير نت ←</span>
+        </button>
+      )}
       {missingModel && (
         <button className="setup-banner glass" onClick={() => setSettingsOpen(true)}>
           <b>{local.status?.state === "downloading" ? "الموديل بيتنزّل…" : "نزّل المخ على موبايلك"}</b>
@@ -74,7 +85,11 @@ export function App() {
       <main>
         {/* Tabs stay mounted so a running conversation isn't lost when you peek at the notebook. */}
         <div hidden={tab !== "say"}>
-          <SayTab onWord={onWord} onShow={setShow} />
+          {settings.engine === "google" ? (
+            <TranslateTab onWord={onWord} onShow={setShow} />
+          ) : (
+            <SayTab onWord={onWord} onShow={setShow} />
+          )}
         </div>
         <div hidden={tab !== "live"}>
           <LiveTab onWord={onWord} onShow={setShow} />
@@ -85,7 +100,7 @@ export function App() {
       </main>
 
       <nav className="dock glass" aria-label="التنقل">
-        <DockItem active={tab === "say"} onClick={() => setTab("say")} icon={<IconSpark size={22} />} label="قولها" />
+        <DockItem active={tab === "say"} onClick={() => setTab("say")} icon={<IconSpark size={22} />} label={settings.engine === "google" ? "ترجمة" : "قولها"} />
         <DockItem active={tab === "live"} onClick={() => setTab("live")} icon={<IconChat size={22} />} label="محادثة" />
         <DockItem active={tab === "book"} onClick={() => setTab("book")} icon={<IconBook size={22} />} label="كشكولي" badge={due} />
       </nav>

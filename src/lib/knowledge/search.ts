@@ -127,3 +127,48 @@ export function glossary(text: string): { word: string; meaning: string; it: str
   }
   return [...found.values()];
 }
+
+/** First clean gloss: "أعرف / عارف" -> "أعرف"; explanations in parentheses are not usable. */
+function plainMeaning(meaning: string): string | null {
+  const first = meaning.split(" / ")[0].trim();
+  if (/[()]/.test(first) || first.split(" ").length > 3) return null;
+  return first;
+}
+
+/**
+ * Rewrites Egyptian words as standard Arabic for the offline translator:
+ * "مش عايز اشيل الاكل" -> "ليس أريد أزِل الطعام" style word-level substitutions.
+ * Prefixes are kept (لـ، و، ف) and the Egyptian future ه becomes سـ.
+ */
+export function standardize(text: string): string {
+  let out = ` ${text.replace(/\s+/g, " ").trim()} `;
+  for (const g of GLOSS) {
+    const to = plainMeaning(g.meaning);
+    if (!to) continue;
+    for (const f of g.forms) if (f.includes(" ") && out.includes(` ${f} `)) out = out.split(` ${f} `).join(` ${to} `);
+  }
+  return out
+    .trim()
+    .split(" ")
+    .map((tok) => {
+      const t = normalizeArabic(tok);
+      if (!t) return tok;
+      const direct = GLOSS_BY_FORM.get(t);
+      if (direct) return plainMeaning(direct.meaning) ?? tok;
+      const prefix = t.length > 3 ? (t.match(/^(وال|بال|فال|لل|ال|ل|و|ف|ه|ب)/)?.[0] ?? "") : "";
+      if (!prefix) return tok;
+      const bare = t.slice(prefix.length);
+      // بيشتغل / هيروح: the glossary gives first-person verbs, so other persons stay as written.
+      if ((prefix === "ب" || prefix === "ه") && /^[يتن]/.test(bare)) return tok;
+      const g =
+        GLOSS_BY_FORM.get(bare) ??
+        GLOSS_BY_FORM.get("ا" + bare);
+      const m = g && plainMeaning(g.meaning);
+      if (!m) return tok;
+      if (prefix.endsWith("ال") || prefix === "لل") return prefix + m.replace(/^ال/, ""); // الاكل -> الطعام
+      if (prefix === "ه") return "س" + m; // هروح -> سأذهب
+      if (prefix === "ب") return m; // باكل -> آكل
+      return prefix + m;
+    })
+    .join(" ");
+}

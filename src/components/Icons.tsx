@@ -61,3 +61,7 @@ export const IconHand = ({ size = 24 }: P) =>
   svg(size, <path d="M7 11V5.5a1.5 1.5 0 0 1 3 0V10M10 9.5v-6a1.5 1.5 0 0 1 3 0v6M13 9.5V5a1.5 1.5 0 0 1 3 0v6M16 10a1.5 1.5 0 0 1 3 0v4a8 8 0 0 1-8 8h-.5a7 7 0 0 1-5.6-2.8L2.6 16a1.6 1.6 0 0 1 2.5-2L7 16" />);
 export const IconBubbles = ({ size = 24 }: P) =>
   svg(size, <><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h8A2.5 2.5 0 0 1 16 5.5v5a2.5 2.5 0 0 1-2.5 2.5H8l-4 3v-3.2A2.5 2.5 0 0 1 3 10.5z" /><path d="M19 8.5h.5A1.5 1.5 0 0 1 21 10v5a2.5 2.5 0 0 1-1 2v3l-3.5-2.5H12a2.5 2.5 0 0 1-2-1" /></>);
+export const IconSwap = ({ size = 24 }: P) =>
+  svg(size, <path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />);
+export const IconSearch = ({ size = 24 }: P) =>
+  svg(size, <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>);
